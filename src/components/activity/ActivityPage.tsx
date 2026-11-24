@@ -180,7 +180,15 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
   }, [toast]);
 
   function scrollToDraw() {
-    document.getElementById("draw-area")?.scrollIntoView({ behavior: "smooth" });
+    const target = document.getElementById("draw-area");
+    const scroller = document.querySelector(".page-scroll");
+    if (!target || !(scroller instanceof HTMLElement)) return;
+    const top =
+      target.getBoundingClientRect().top -
+      scroller.getBoundingClientRect().top +
+      scroller.scrollTop -
+      12;
+    scroller.scrollTo({ top, behavior: "smooth" });
   }
 
   if (loading) {
@@ -211,8 +219,9 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
         }
         aria-hidden="true"
       />
-      <section className="main-content" aria-labelledby="activity-title">
-        <header className="brand-area">
+
+      <header className="page-top">
+        <div className="brand-area">
           <div className="logo-line">
             <img src="/activity/logo-future.png" alt="未来社区" />
             <img src="/activity/logo-fumei.png" alt="博富·福美城" />
@@ -225,8 +234,11 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
               规则详情
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
+      <div className="page-scroll">
+      <section className="main-content" aria-labelledby="activity-title">
         {activity.notices.length > 0 && (
           <div className="notice" aria-live="polite">
             <span>活动公告</span>
@@ -434,36 +446,47 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
           咨询热线：{activity.phone}
         </p>
       </footer>
+      </div>
 
-      <div className="bottom-dock">
-        {consultant && (
+      <div className="page-bottom">
+        <div className="bottom-dock">
+          {consultant && (
+            <button
+              className="consultant-dock"
+              type="button"
+              onClick={() => setModal("consultant")}
+            >
+              <div className="consultant-avatar small">
+                {consultant.avatarUrl ? (
+                  <img src={consultant.avatarUrl} alt="" />
+                ) : (
+                  consultant.name.slice(0, 1)
+                )}
+              </div>
+              <div>
+                <strong>{consultant.name}</strong>
+                <span>{consultant.phone}</span>
+              </div>
+              <p>{consultant.intro}</p>
+            </button>
+          )}
           <button
-            className="consultant-dock"
+            className="consult-float"
             type="button"
             onClick={() => setModal("consultant")}
           >
-            <div className="consultant-avatar small">
-              {consultant.avatarUrl ? (
-                <img src={consultant.avatarUrl} alt="" />
-              ) : (
-                consultant.name.slice(0, 1)
-              )}
-            </div>
-            <div>
-              <strong>{consultant.name}</strong>
-              <span>{consultant.phone}</span>
-            </div>
-            <p>{consultant.intro}</p>
+            <span>立即咨询</span>
+            <b>☎</b>
           </button>
-        )}
-        <button
-          className="consult-float"
-          type="button"
-          onClick={() => setModal("consultant")}
-        >
-          <span>立即咨询</span>
-          <b>☎</b>
-        </button>
+          <div className="fixed-actions">
+            <button type="button" onClick={() => setModal("consultant")}>
+              立即咨询
+            </button>
+            <button type="button" onClick={scrollToDraw}>
+              进入活动
+            </button>
+          </div>
+        </div>
       </div>
 
       {poster && (

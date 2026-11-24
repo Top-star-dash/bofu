@@ -36,11 +36,13 @@ button {
 
 .activity-page {
   position: relative;
+  display: flex;
+  flex-direction: column;
   max-width: 520px;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
   margin: auto;
-  padding-bottom: 148px;
-  overflow: clip;
+  overflow: hidden;
   background: #fff8ed;
   box-shadow: 0 0 36px #71483322;
 }
@@ -51,6 +53,34 @@ button {
   z-index: 0;
   background: url('/activity/kv-bg.png') center top / cover no-repeat;
   pointer-events: none;
+}
+
+.page-top,
+.page-bottom {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 auto;
+}
+
+.page-top {
+  padding: 10px 14px 8px;
+  background: linear-gradient(180deg, #8f281fcc, #8f281f00);
+}
+
+.page-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.page-bottom {
+  background: #fff8ed;
+  box-shadow: 0 -8px 20px #6b2b2318;
 }
 
 .loading-page {
@@ -64,7 +94,7 @@ button {
   position: relative;
   z-index: 1;
   overflow: clip;
-  padding: 12px 14px 22px;
+  padding: 8px 14px 22px;
   color: white;
   background: transparent;
 }
@@ -593,12 +623,10 @@ button {
 }
 
 .bottom-dock {
-  position: fixed;
+  position: relative;
   z-index: 5;
-  right: max(0px, calc((100vw - 520px)/2));
-  bottom: 0;
-  left: max(0px, calc((100vw - 520px)/2));
-  width: min(100%, 520px);
+  width: 100%;
+  padding-bottom: 12px;
 }
 
 .consultant-dock {
@@ -606,11 +634,10 @@ button {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 12px 0px;
+  padding: 10px 12px 58px;
   border: 0;
   text-align: left;
-  background: #fff8edee;
-  box-shadow: 0 -6px 18px #6b2b2318;
+  background: transparent;
 }
 
 .consultant-dock strong,
