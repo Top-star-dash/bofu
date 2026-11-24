@@ -7,7 +7,7 @@
   --cream: #fff2db;
   --ink: #5a241a;
   --muted: #8a6c5b;
-  --page-max: 520px;
+  --page-max: 750px;
   --page-gutter: 14px;
   --card-gap: 12px;
 }
@@ -736,8 +736,8 @@ button {
 
 .poster-dialog,
 .modal-dialog {
-  --page-w: min(100vw, 520px);
-  --page-left: max(0px, calc((100vw - 520px) / 2));
+  --page-w: min(100vw, var(--page-max));
+  --page-left: max(0px, calc((100vw - var(--page-max)) / 2));
   position: fixed;
   inset: 0 auto 0 var(--page-left);
   width: var(--page-w);
@@ -933,11 +933,11 @@ button {
   position: fixed;
   z-index: 30;
   top: 12px;
-  left: max(12px, calc((100vw - 520px) / 2 + 12px));
+  left: max(12px, calc((100vw - var(--page-max)) / 2 + 12px));
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  width: min(calc(min(100vw, 520px) - 24px), 280px);
+  width: min(calc(min(100vw, var(--page-max)) - 24px), 280px);
   padding: 12px 14px;
   border-radius: 0 10px 10px 0;
   border-left: 4px solid #ffd16b;
