@@ -1,0 +1,260 @@
+// 博富·福美城抽奖系统数据模型
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AdminStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ActivityStatus {
+  DRAFT
+  NOT_STARTED
+  RUNNING
+  ENDED
+}
+
+enum RedeemStatus {
+  PENDING
+  REDEEMED
+  EXPIRED
+}
+
+enum LeadTier {
+  A
+  B
+  C
+}
+
+model AdminUser {
+  id           String      @id @default(cuid())
+  username     String      @unique
+  passwordHash String
+  name         String
+  phone        String?
+  isSuperAdmin Boolean     @default(false)
+  status       AdminStatus @default(ACTIVE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  permissions  AdminUserPermission[]
+  operationLogs OperationLog[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  users       AdminUserPermission[]
+}
+
+model AdminUserPermission {
+  id           String     @id @default(cuid())
+  userId       String
+  permissionId String
+  user         AdminUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+}
+
+model Activity {
+  id              String         @id @default(cuid())
+  title           String
+  subtitle        String?
+  status          ActivityStatus @default(DRAFT)
+  startAt         DateTime
+  endAt           DateTime
+  redeemDeadline  DateTime
+  redeemPassword  String         @default("6666")
+  phone           String         @default("0750-5236666")
+  address         String         @default("博富·福美城冠军薈")
+  mapUrl          String?
+  shareTitle      String?
+  shareDesc       String?
+  shareCoverUrl   String?
+  posterUrl       String?
+  backgroundUrl   String?
+  wheelImageUrl   String?
+  rulesHtml       String?
+  rulesColor      String?
+  firstDrawChance Int            @default(1)
+  assistChance    Int            @default(1)
+  assistMaxExtra  Int            @default(3)
+  exposureCount   Int            @default(0)
+  participateCount Int           @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  notices         ActivityNotice[]
+  prizes          Prize[]
+  assets          ActivityAsset[]
+  customers       Customer[]
+  leads           Lead[]
+  drawRecords     DrawRecord[]
+  consultants     Consultant[]
+}
+
+model ActivityNotice {
+  id         String   @id @default(cuid())
+  activityId String
+  content    String
+  sortOrder  Int      @default(0)
+  enabled    Boolean  @default(true)
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+}
+
+model ActivityAsset {
+  id         String   @id @default(cuid())
+  activityId String
+  type       String
+  title      String?
+  subtitle   String?
+  imageUrl   String
+  linkUrl    String?
+  sortOrder  Int      @default(0)
+  enabled    Boolean  @default(true)
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+}
+
+model Prize {
+  id          String   @id @default(cuid())
+  activityId  String
+  level       String
+  name        String
+  imageUrl    String?
+  stock       Int
+  remainStock Int
+  probability Decimal  @db.Decimal(5, 2)
+  description String?
+  sortOrder   Int      @default(0)
+  enabled     Boolean  @default(true)
+  isFallback  Boolean  @default(false)
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  drawRecords DrawRecord[]
+}
+
+model Consultant {
+  id          String   @id @default(cuid())
+  activityId  String
+  name        String
+  phone       String
+  employeeNo  String?
+  teamName    String?
+  title       String   @default("置业顾问")
+  avatarUrl   String?
+  qrcodeUrl   String?
+  intro       String?
+  message     String?
+  shareCode   String   @unique
+  isDefault   Boolean  @default(false)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  customers   Customer[]
+  leads       Lead[]
+}
+
+model Customer {
+  id              String    @id @default(cuid())
+  activityId      String
+  openid          String
+  unionid         String?
+  nickname        String?
+  avatarUrl       String?
+  drawChance      Int       @default(0)
+  assistGained    Int       @default(0)
+  consultantId    String?
+  inviterId       String?
+  firstEnterAt    DateTime  @default(now())
+  lastActiveAt    DateTime  @default(now())
+  propertyStaySec Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  activity        Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  consultant      Consultant? @relation(fields: [consultantId], references: [id])
+  inviter         Customer? @relation("CustomerInvite", fields: [inviterId], references: [id])
+  invitees        Customer[] @relation("CustomerInvite")
+  lead            Lead?
+  drawRecords     DrawRecord[]
+  assistsGiven    AssistRecord[] @relation("AssistFrom")
+  assistsReceived AssistRecord[] @relation("AssistTo")
+  browseEvents    BrowseEvent[]
+
+  @@unique([activityId, openid])
+}
+
+model Lead {
+  id            String    @id @default(cuid())
+  activityId    String
+  customerId    String    @unique
+  consultantId  String?
+  name          String
+  phone         String
+  intentLayout  String?
+  intentArea    String?
+  focusFactors  String?
+  visitDate     DateTime?
+  tier          LeadTier  @default(C)
+  remark        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  activity      Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  consultant    Consultant? @relation(fields: [consultantId], references: [id])
+}
+
+model AssistRecord {
+  id         String   @id @default(cuid())
+  inviterId  String
+  inviteeId  String
+  valid      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  inviter    Customer @relation("AssistTo", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee    Customer @relation("AssistFrom", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([inviterId, inviteeId])
+}
+
+model DrawRecord {
+  id           String       @id @default(cuid())
+  activityId   String
+  customerId   String
+  prizeId      String?
+  prizeName    String
+  prizeLevel   String
+  isWin        Boolean      @default(true)
+  redeemStatus RedeemStatus @default(PENDING)
+  redeemCode   String       @unique @default(cuid())
+  redeemedAt   DateTime?
+  redeemedBy   String?
+  createdAt    DateTime     @default(now())
+  activity     Activity     @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  prize        Prize?       @relation(fields: [prizeId], references: [id])
+}
+
+model BrowseEvent {
+  id         String   @id @default(cuid())
+  customerId String
+  section    String
+  staySec    Int      @default(0)
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model OperationLog {
+  id        String    @id @default(cuid())
+  userId    String?
+  action    String
+  detail    String?
+  createdAt DateTime  @default(now())
+  user      AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
