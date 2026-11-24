@@ -24,10 +24,16 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
   const [poster, setPoster] = useState(true);
   const [posterSeconds, setPosterSeconds] = useState(5);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const [toast, setToast] = useState<{ text: string; type: "error" | "info" } | null>(
+    null,
+  );
   const [drawing, setDrawing] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const posterRef = useRef<HTMLDialogElement>(null);
+
+  function showToast(text: string, type: "error" | "info" = "error") {
+    setToast({ text, type });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -43,7 +49,7 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
         setActivity(data.activity);
         setCustomer(data.customer);
       } else if (!cancelled) {
-        setMessage(data.message || "活动加载失败");
+        showToast(data.message || "活动加载失败");
       }
       if (!cancelled) setLoading(false);
     }
@@ -62,13 +68,12 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
   }, [activity]);
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (modal) {
-      if (!dialog.open) dialog.showModal();
-    } else if (dialog.open) {
-      dialog.close();
-    }
+    if (!modal) return;
+    const frame = window.requestAnimationFrame(() => {
+      const dialog = dialogRef.current;
+      if (dialog && !dialog.open) dialog.showModal();
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [modal]);
 
   useEffect(() => {
@@ -106,7 +111,7 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
     });
     const data = await response.json();
     if (!response.ok) {
-      setMessage(data.message || "留资失败");
+      showToast(data.message || "留资失败");
       return;
     }
     setCustomer((prev) =>
@@ -115,13 +120,13 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
         : prev,
     );
     setModal(null);
-    setMessage("留资成功，已获得抽奖机会");
+    showToast("留资成功，已获得抽奖机会", "info");
   }
 
   async function draw() {
     if (!activity || drawing) return;
     if (activity.status !== "RUNNING") {
-      setMessage("活动未开始或已结束");
+      showToast("活动未开始或已结束");
       return;
     }
     if (!customer?.hasLead) {
@@ -141,7 +146,7 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
     if (!response.ok) {
       if (data.code === "NEED_LEAD") setModal("lead");
       else if (data.code === "NO_CHANCE") setModal("help");
-      else setMessage(data.message || "抽奖失败");
+      else showToast(data.message || "抽奖失败");
       return;
     }
 
@@ -168,6 +173,12 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
     setModal("prizes");
   }
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
   function scrollToDraw() {
     document.getElementById("draw-area")?.scrollIntoView({ behavior: "smooth" });
   }
@@ -177,7 +188,11 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
   }
 
   if (!activity) {
-    return <main className="activity-page loading-page">{message || "活动未配置"}</main>;
+    return (
+      <main className="activity-page loading-page">
+        {toast?.text || "活动未配置"}
+      </main>
+    );
   }
 
   const consultant = activity.consultant;
@@ -187,16 +202,16 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
 
   return (
     <main className="activity-page">
+      <div
+        className="page-background"
+        style={
+          activity.backgroundUrl
+            ? { backgroundImage: `url('${activity.backgroundUrl}')` }
+            : undefined
+        }
+        aria-hidden="true"
+      />
       <section className="main-content" aria-labelledby="activity-title">
-        <div
-          className="content-background"
-          style={
-            activity.backgroundUrl
-              ? { backgroundImage: `url('${activity.backgroundUrl}')` }
-              : undefined
-          }
-          aria-hidden="true"
-        />
         <header className="brand-area">
           <div className="logo-line">
             <img src="/activity/logo-future.png" alt="未来社区" />
@@ -483,177 +498,183 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
         </dialog>
       )}
 
-      <dialog
-        ref={dialogRef}
-        className="modal-dialog"
-        aria-labelledby="modal-title"
-        onClose={() => setModal(null)}
-        onClick={(event) => {
-          if (event.target === dialogRef.current) setModal(null);
-        }}
-      >
-        <div className="modal-panel">
-          <button
-            className="modal-close"
-            type="button"
-            onClick={() => setModal(null)}
-            aria-label="关闭弹窗"
-          >
-            ×
-          </button>
+      {modal && (
+        <dialog
+          ref={dialogRef}
+          className="modal-dialog"
+          aria-labelledby="modal-title"
+          onClose={() => setModal(null)}
+          onClick={(event) => {
+            if (event.target === dialogRef.current) setModal(null);
+          }}
+        >
+          <div className="modal-panel">
+            <button
+              className="modal-close"
+              type="button"
+              onClick={() => setModal(null)}
+              aria-label="关闭弹窗"
+            >
+              ×
+            </button>
 
-          {modal === "lead" && (
-            <>
-              <span>客户留资</span>
-              <h2 id="modal-title">留下信息，开启好运</h2>
-              <form onSubmit={submitLead}>
-                <label>
-                  客户姓名
-                  <input name="name" required placeholder="请输入姓名" />
-                </label>
-                <label>
-                  手机号码
-                  <input
-                    name="phone"
-                    required
-                    type="tel"
-                    inputMode="numeric"
-                    pattern="1[0-9]{10}"
-                    placeholder="请输入手机号码"
-                  />
-                </label>
-                <label>
-                  意向户型
-                  <select name="intentLayout" defaultValue="">
-                    <option value="" disabled>
-                      请选择户型
-                    </option>
-                    <option>三房</option>
-                    <option>四房</option>
-                    <option>五房</option>
-                    <option>商铺</option>
-                  </select>
-                </label>
-                <label>
-                  预计到访看房日期
-                  <input name="visitDate" type="date" />
-                </label>
-                <button className="submit-button" type="submit">
-                  提交并获得抽奖机会
-                </button>
-              </form>
-            </>
-          )}
+            {modal === "lead" && (
+              <>
+                <span>客户留资</span>
+                <h2 id="modal-title">留下信息，开启好运</h2>
+                <form onSubmit={submitLead}>
+                  <label>
+                    客户姓名
+                    <input name="name" required placeholder="请输入姓名" />
+                  </label>
+                  <label>
+                    手机号码
+                    <input
+                      name="phone"
+                      required
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="1[0-9]{10}"
+                      placeholder="请输入手机号码"
+                    />
+                  </label>
+                  <label>
+                    意向户型
+                    <select name="intentLayout" defaultValue="">
+                      <option value="" disabled>
+                        请选择户型
+                      </option>
+                      <option>三房</option>
+                      <option>四房</option>
+                      <option>五房</option>
+                      <option>商铺</option>
+                    </select>
+                  </label>
+                  <label>
+                    预计到访看房日期
+                    <input name="visitDate" type="date" />
+                  </label>
+                  <button className="submit-button" type="submit">
+                    提交并获得抽奖机会
+                  </button>
+                </form>
+              </>
+            )}
 
-          {modal === "help" && (
-            <>
-              <span>好友助力</span>
-              <h2 id="modal-title">邀请好友，再得抽奖机会</h2>
-              <p>
-                分享活动给好友，好友完成有效留资后，你可增加 1
-                次抽奖机会，单人最多增加 3 次。
-              </p>
-              <button
-                className="submit-button"
-                type="button"
-                onClick={() => setModal(null)}
-              >
-                我知道了
-              </button>
-            </>
-          )}
-
-          {modal === "rules" && (
-            <>
-              <span>详细规则</span>
-              <h2 id="modal-title">{activity.title}</h2>
-              <ol>
-                <li>每位客户首次进入并完成留资后免费抽奖 1 次。</li>
-                <li>每邀请 1 位好友完成有效留资，增加 1 次机会，最多 3 次。</li>
-                <li>礼品数量有限，先到先得，领完即止。</li>
-                <li>
-                  领取截止至 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}
-                  ，逾期视为自动放弃。
-                </li>
-                <li>
-                  领奖地址：{activity.address}，核销密码：6666。
-                </li>
-              </ol>
-            </>
-          )}
-
-          {modal === "prizes" && (
-            <>
-              <span>我的奖品</span>
-              <h2 id="modal-title">
-                {customer?.prizes[0]?.prizeName || "暂时还没有中奖记录"}
-              </h2>
-              {customer?.prizes.length ? (
-                <ul className="prize-list">
-                  {customer.prizes.map((item) => (
-                    <li key={item.id}>
-                      <strong>
-                        {item.prizeLevel} · {item.prizeName}
-                      </strong>
-                      <span>
-                        {item.isWin ? item.redeemStatus : "未中奖"} ·{" "}
-                        {new Date(item.createdAt).toLocaleString("zh-CN")}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>完成抽奖后，中奖记录会显示在这里。</p>
-              )}
-              <p>
-                请于 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}{" "}
-                前到 {activity.address} 现场领取。
-              </p>
-            </>
-          )}
-
-          {modal === "consultant" && consultant && (
-            <>
-              <span>专属顾问</span>
-              <h2 id="modal-title">{consultant.name}</h2>
-              <div className="consultant-modal">
-                <div className="consultant-avatar large">
-                  {consultant.avatarUrl ? (
-                    <img src={consultant.avatarUrl} alt="" />
-                  ) : (
-                    consultant.name.slice(0, 1)
-                  )}
-                </div>
-                <p>{consultant.message || consultant.intro}</p>
-                <strong>{consultant.phone}</strong>
-                <a
+            {modal === "help" && (
+              <>
+                <span>好友助力</span>
+                <h2 id="modal-title">邀请好友，再得抽奖机会</h2>
+                <p>
+                  分享活动给好友，好友完成有效留资后，你可增加 1
+                  次抽奖机会，单人最多增加 3 次。
+                </p>
+                <button
                   className="submit-button"
-                  href={`tel:${consultant.phone.replace(/-/g, "")}`}
+                  type="button"
+                  onClick={() => setModal(null)}
                 >
-                  拨打电话
-                </a>
-                <div className="qr-box large">
-                  {consultant.qrcodeUrl ? (
-                    <img src={consultant.qrcodeUrl} alt="顾问微信二维码" />
-                  ) : (
-                    "顾问微信二维码"
-                  )}
-                </div>
-                <small>长按识别二维码，添加专属顾问微信</small>
-              </div>
-            </>
-          )}
-        </div>
-      </dialog>
+                  我知道了
+                </button>
+              </>
+            )}
 
-      {/* {message && (
-        <div className="toast" role="status">
-          {message}
-          <button type="button" onClick={() => setMessage("")}>
+            {modal === "rules" && (
+              <>
+                <span>详细规则</span>
+                <h2 id="modal-title">{activity.title}</h2>
+                <ol>
+                  <li>每位客户首次进入并完成留资后免费抽奖 1 次。</li>
+                  <li>每邀请 1 位好友完成有效留资，增加 1 次机会，最多 3 次。</li>
+                  <li>礼品数量有限，先到先得，领完即止。</li>
+                  <li>
+                    领取截止至 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}
+                    ，逾期视为自动放弃。
+                  </li>
+                  <li>
+                    领奖地址：{activity.address}，核销密码：6666。
+                  </li>
+                </ol>
+              </>
+            )}
+
+            {modal === "prizes" && (
+              <>
+                <span>我的奖品</span>
+                <h2 id="modal-title">
+                  {customer?.prizes[0]?.prizeName || "暂时还没有中奖记录"}
+                </h2>
+                {customer?.prizes.length ? (
+                  <ul className="prize-list">
+                    {customer.prizes.map((item) => (
+                      <li key={item.id}>
+                        <strong>
+                          {item.prizeLevel} · {item.prizeName}
+                        </strong>
+                        <span>
+                          {item.isWin ? item.redeemStatus : "未中奖"} ·{" "}
+                          {new Date(item.createdAt).toLocaleString("zh-CN")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>完成抽奖后，中奖记录会显示在这里。</p>
+                )}
+                <p>
+                  请于 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}{" "}
+                  前到 {activity.address} 现场领取。
+                </p>
+              </>
+            )}
+
+            {modal === "consultant" && consultant && (
+              <>
+                <span>专属顾问</span>
+                <h2 id="modal-title">{consultant.name}</h2>
+                <div className="consultant-modal">
+                  <div className="consultant-avatar large">
+                    {consultant.avatarUrl ? (
+                      <img src={consultant.avatarUrl} alt="" />
+                    ) : (
+                      consultant.name.slice(0, 1)
+                    )}
+                  </div>
+                  <p>{consultant.message || consultant.intro}</p>
+                  <strong>{consultant.phone}</strong>
+                  <a
+                    className="submit-button"
+                    href={`tel:${consultant.phone.replace(/-/g, "")}`}
+                  >
+                    拨打电话
+                  </a>
+                  <div className="qr-box large">
+                    {consultant.qrcodeUrl ? (
+                      <img src={consultant.qrcodeUrl} alt="顾问微信二维码" />
+                    ) : (
+                      "顾问微信二维码"
+                    )}
+                  </div>
+                  <small>长按识别二维码，添加专属顾问微信</small>
+                </div>
+              </>
+            )}
+          </div>
+        </dialog>
+      )}
+
+      {toast && (
+        <div
+          className={`toast-drawer toast-${toast.type}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span>{toast.text}</span>
+          <button type="button" aria-label="关闭提示" onClick={() => setToast(null)}>
             ×
           </button>
         </div>
-      )} */}
+      )}
     </main>
   );
 }
