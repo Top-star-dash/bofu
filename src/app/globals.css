@@ -653,7 +653,7 @@ button {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 12px 58px;
+  padding: 10px 12px;
   border: 0;
   text-align: left;
   background: transparent;
@@ -689,7 +689,7 @@ button {
   position: absolute;
   z-index: 2;
   left: 12px;
-  bottom: 62px;
+  bottom: calc(100% + 5px);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -705,33 +705,6 @@ button {
 
 .consult-float b {
   font-weight: 400;
-}
-
-.fixed-actions {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  left: 12px;
-  display: flex;
-  overflow: clip;
-  border-radius: 25px;
-  box-shadow: 0 5px 16px #6b2b2344;
-}
-
-.fixed-actions button {
-  flex: 1;
-  padding: 14px;
-  border: 0;
-  color: white;
-  font-weight: 800;
-}
-
-.fixed-actions button:first-child {
-  background: #ef6b42;
-}
-
-.fixed-actions button:last-child {
-  background: #b83224;
 }
 
 .poster-dialog,

@@ -179,18 +179,6 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  function scrollToDraw() {
-    const target = document.getElementById("draw-area");
-    const scroller = document.querySelector(".page-scroll");
-    if (!target || !(scroller instanceof HTMLElement)) return;
-    const top =
-      target.getBoundingClientRect().top -
-      scroller.getBoundingClientRect().top +
-      scroller.scrollTop -
-      12;
-    scroller.scrollTo({ top, behavior: "smooth" });
-  }
-
   if (loading) {
     return <main className="activity-page loading-page">活动加载中…</main>;
   }
@@ -481,14 +469,6 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
             <span>立即咨询</span>
             <b>☎</b>
           </button>
-          <div className="fixed-actions">
-            <button type="button" onClick={() => setModal("consultant")}>
-              立即咨询
-            </button>
-            <button type="button" onClick={scrollToDraw}>
-              进入活动
-            </button>
-          </div>
         </div>
       </div>
 
