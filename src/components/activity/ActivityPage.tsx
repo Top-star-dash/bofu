@@ -310,7 +310,10 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
           </div>
         </div>
 
-        <section className="rich-rule">
+      </section>
+
+      <div className="card-stack">
+        <section className="content-card rich-rule">
           <h2>活动规则</h2>
           <div
             style={activity.rulesColor ? { color: activity.rulesColor } : undefined}
@@ -324,128 +327,128 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
             查看详细规则 →
           </button>
         </section>
-      </section>
 
-      {consultant && (
-        <section className="consultant-card" aria-label="销售顾问">
-          <div className="consultant-avatar">
-            {consultant.avatarUrl ? (
-              <img src={consultant.avatarUrl} alt={consultant.name} />
-            ) : (
-              consultant.name.slice(0, 1)
-            )}
+        {consultant && (
+          <section className="content-card consultant-card" aria-label="销售顾问">
+            <div className="consultant-avatar">
+              {consultant.avatarUrl ? (
+                <img src={consultant.avatarUrl} alt={consultant.name} />
+              ) : (
+                consultant.name.slice(0, 1)
+              )}
+            </div>
+            <div className="consultant-text">
+              <strong>
+                {consultant.title} · {consultant.name}
+              </strong>
+              <a href={`tel:${consultant.phone.replace(/-/g, "")}`}>
+                {consultant.phone}
+              </a>
+              <p>{consultant.intro}</p>
+            </div>
+            <div className="qr-box">
+              {consultant.qrcodeUrl ? (
+                <img src={consultant.qrcodeUrl} alt="顾问二维码" />
+              ) : (
+                <>
+                  顾问
+                  <br />
+                  二维码
+                </>
+              )}
+            </div>
+          </section>
+        )}
+
+        <section className="content-card prize-section" aria-labelledby="prizes-title">
+          <div className="section-heading">
+            <span>奖品展示</span>
+            <h2 id="prizes-title">幸运好礼，100%中奖</h2>
           </div>
-          <div className="consultant-text">
-            <strong>
-              {consultant.title} · {consultant.name}
-            </strong>
-            <a href={`tel:${consultant.phone.replace(/-/g, "")}`}>
-              {consultant.phone}
-            </a>
-            <p>{consultant.intro}</p>
-          </div>
-          <div className="qr-box">
-            {consultant.qrcodeUrl ? (
-              <img src={consultant.qrcodeUrl} alt="顾问二维码" />
-            ) : (
-              <>
-                顾问
-                <br />
-                二维码
-              </>
-            )}
+          {firstPrize && (
+            <article className="first-prize">
+              <img
+                src={firstPrize.imageUrl || "/activity/prize-1.jpg"}
+                alt={firstPrize.name}
+              />
+              <div>
+                <small>{firstPrize.level}</small>
+                <h3>{firstPrize.name}</h3>
+                <p>到访现场核销，数量有限先到先得</p>
+              </div>
+            </article>
+          )}
+          <div className="other-prizes">
+            {otherPrizes.map((prize) => (
+              <article key={prize.id}>
+                <img
+                  src={prize.imageUrl || "/activity/prize-2.jpg"}
+                  alt={prize.name}
+                />
+                <small>{prize.level}</small>
+                <h3>{prize.name}</h3>
+                <p>数量有限，先到先得</p>
+              </article>
+            ))}
           </div>
         </section>
-      )}
 
-      <section className="prize-section" aria-labelledby="prizes-title">
-        <div className="section-heading">
-          <span>奖品展示</span>
-          <h2 id="prizes-title">幸运好礼，100%中奖</h2>
-        </div>
-        {firstPrize && (
-          <article className="first-prize">
-            <img
-              src={firstPrize.imageUrl || "/activity/prize-1.jpg"}
-              alt={firstPrize.name}
-            />
+        <section className="content-card contact-row">
+          <a href={tel}>
+            <span>☎</span>
             <div>
-              <small>{firstPrize.level}</small>
-              <h3>{firstPrize.name}</h3>
-              <p>到访现场核销，数量有限先到先得</p>
+              <small>咨询热线</small>
+              <strong>{activity.phone}</strong>
+              <em>点击拨打</em>
             </div>
-          </article>
-        )}
-        <div className="other-prizes">
-          {otherPrizes.map((prize) => (
-            <article key={prize.id}>
-              <img
-                src={prize.imageUrl || "/activity/prize-2.jpg"}
-                alt={prize.name}
-              />
-              <small>{prize.level}</small>
-              <h3>{prize.name}</h3>
-              <p>数量有限，先到先得</p>
+          </a>
+          <a href={activity.mapUrl || "#map"}>
+            <span>⌖</span>
+            <div>
+              <small>领奖地址</small>
+              <strong>{activity.address}</strong>
+              <em>打开地图导航</em>
+            </div>
+          </a>
+        </section>
+
+        <section className="content-card property-section" aria-labelledby="property-title">
+          <div className="section-heading">
+            <span>楼盘社区</span>
+            <h2 id="property-title">城芯生活，住进福美</h2>
+          </div>
+          {activity.propertyAssets.map((asset, index) => (
+            <article
+              className={`property-card ${index % 2 ? "text-right" : ""}`}
+              key={asset.id}
+            >
+              <img src={asset.imageUrl} alt={asset.title || "楼盘图片"} loading="lazy" />
+              <div>
+                <strong>{asset.title}</strong>
+                <p>{asset.subtitle}</p>
+              </div>
             </article>
           ))}
-        </div>
-      </section>
+        </section>
 
-      <section className="contact-row">
-        <a href={tel}>
-          <span>☎</span>
-          <div>
-            <small>咨询热线</small>
-            <strong>{activity.phone}</strong>
-            <em>点击拨打</em>
-          </div>
-        </a>
-        <a href={activity.mapUrl || "#map"}>
-          <span>⌖</span>
-          <div>
-            <small>领奖地址</small>
-            <strong>{activity.address}</strong>
-            <em>打开地图导航</em>
-          </div>
-        </a>
-      </section>
+        <section className="content-card stats-row">
+          <strong>
+            曝光量 <b>{activity.exposureCount.toLocaleString()}</b>
+          </strong>
+          <strong>
+            参与量 <b>{activity.participateCount.toLocaleString()}</b>
+          </strong>
+        </section>
 
-      <section className="property-section" aria-labelledby="property-title">
-        <div className="section-heading">
-          <span>楼盘社区</span>
-          <h2 id="property-title">城芯生活，住进福美</h2>
-        </div>
-        {activity.propertyAssets.map((asset, index) => (
-          <article
-            className={`property-card ${index % 2 ? "text-right" : ""}`}
-            key={asset.id}
-          >
-            <img src={asset.imageUrl} alt={asset.title || "楼盘图片"} loading="lazy" />
-            <div>
-              <strong>{asset.title}</strong>
-              <p>{asset.subtitle}</p>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <section className="stats-row">
-        <strong>
-          曝光量 <b>{activity.exposureCount.toLocaleString()}</b>
-        </strong>
-        <strong>
-          参与量 <b>{activity.participateCount.toLocaleString()}</b>
-        </strong>
-      </section>
-
-      <footer className="page-footer">
-        <img src="/activity/logo-fumei.png" alt="博富·福美城" />
-        <p>
-          {activity.address}
-          <br />
-          咨询热线：{activity.phone}
-        </p>
-      </footer>
+        <footer className="content-card page-footer">
+          <img src="/activity/logo-fumei.png" alt="博富·福美城" />
+          <p>
+            {activity.address}
+            <br />
+            咨询热线：{activity.phone}
+          </p>
+        </footer>
+      </div>
       </div>
 
       <div className="page-bottom">
