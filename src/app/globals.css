@@ -18,11 +18,14 @@
 
 html {
   scroll-behavior: smooth;
+  height: 100%;
+  background: #e85c32;
 }
 
 body {
   margin: 0;
-  background: #e7ded2;
+  min-height: 100%;
+  background: #e85c32;
   color: var(--ink);
   font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
 }
@@ -47,7 +50,7 @@ button {
   max-height: 100dvh;
   margin: auto;
   overflow: hidden;
-  background: #fff8ed;
+  background: #e85c32;
   box-shadow: 0 0 36px #71483322;
 }
 
@@ -55,11 +58,31 @@ button {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: url('/activity/kv-bg.png') center top / cover no-repeat;
+  width: 100%;
+  height: 100%;
+  /* 必须用分开写法：内联 backgroundImage 不会冲掉 size/position */
+  background-color: #e85c32;
+  background-image: url("/activity/kv-bg.png");
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
   pointer-events: none;
 }
 
-/* 手机：内容区即全屏，背景 cover 铺满整屏；PC：仅铺满 max-width 内容壳 */
+/* 手机：整屏铺满；PC：仅内容壳内铺满 */
+@media (max-width: 750px) {
+  .activity-page {
+    max-width: none;
+    width: 100%;
+    box-shadow: none;
+  }
+}
+
+@media (min-width: 751px) {
+  body {
+    background: #e7ded2;
+  }
+}
 
 .page-top,
 .page-bottom {
@@ -741,10 +764,10 @@ button {
 .poster-panel,
 .modal-panel {
   position: relative;
-  width: 70%;
-  max-width: 70%;
-  height: 70%;
-  max-height: 70%;
+  width: 80%;
+  max-width: 80%;
+  height: 80%;
+  max-height: 80%;
   overflow: auto;
 }
 
@@ -765,7 +788,7 @@ button {
   display: block;
   width: 100%;
   height: auto;
-  max-height: calc(70dvh * 0.7 - 24px);
+  max-height: calc(100% - 24px);
   object-fit: contain;
 }
 
