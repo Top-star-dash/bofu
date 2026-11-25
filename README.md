@@ -18,11 +18,19 @@ APP_ENV=TEST npm run dev       # 本地必须覆盖为 TEST，否则会强制走
 
 `APP_ENV=TEST` 时不校验微信身份，直接用 `dev_<时间戳>` 作为 openid，方便本地联调。
 
+本地若出现 `pool failed to retrieve a connection` / `45028`：多半是库不存在或账号无权限。用 root 建库并授权后再 `npm run db:push && npm run db:seed`：
+
+```sql
+CREATE DATABASE IF NOT EXISTS bofu_fumei_lottery CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON bofu_fumei_lottery.* TO 'dev'@'localhost';
+FLUSH PRIVILEGES;
+```
+
 ## 环境变量
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
-| `DATABASE_URL` | 是 | MySQL 连接串，`mysql://user:pass@host:3306/db`（Prisma 走 `@prisma/adapter-mariadb`，兼容 MySQL 8 / MariaDB 10.11） |
+| `DATABASE_URL` | 是 | MySQL 连接串，`mysql://user:pass@host:3306/db`（Prisma 走 `@prisma/adapter-mariadb`，兼容 MySQL 8 / MariaDB 10.11）。`src/lib/db.ts` 会自动打开 `allowPublicKeyRetrieval`，避免本地 MySQL 8 连不上 |
 | `SESSION_SECRET` | 是 | 顾客/后台 JWT 与授权 state 的签名密钥 |
 | `APP_ENV` | 是 | `PRODUCTION` 时启用微信授权；其他值视为联调 |
 | `WECHAT_APP_ID` / `WECHAT_APP_SECRET` | 生产必填 | 公众号 AppID / AppSecret（服务号需有网页授权权限） |
