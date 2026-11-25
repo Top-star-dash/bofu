@@ -19,6 +19,13 @@ type WxApi = {
   updateTimelineShareData: (payload: Omit<SharePayload, "desc">) => void;
 };
 
+type ShareLogEvent =
+  | "jssdk_sign_fail"
+  | "wx_config_error"
+  | "wx_ready_ok"
+  | "share_update_fail"
+  | "init_exception";
+
 const SCRIPT_ID = "wechat-jssdk";
 
 function loadSdk() {
@@ -54,6 +61,38 @@ function toAbsoluteUrl(path: string) {
   return "";
 }
 
+function reportShareLog(
+  event: ShareLogEvent,
+  payload: {
+    message?: string;
+    pageUrl?: string;
+    shareLink?: string;
+  },
+) {
+  const body = JSON.stringify({
+    event,
+    message: payload.message?.slice(0, 500) || null,
+    pageUrl: payload.pageUrl?.slice(0, 800) || null,
+    shareLink: payload.shareLink?.slice(0, 800) || null,
+    ua: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 300) : null,
+  });
+  // 不阻塞页面：优先 sendBeacon，失败再 fetch keepalive
+  try {
+    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon("/api/wechat/share-log", blob)) return;
+    }
+  } catch {
+    // ignore
+  }
+  void fetch("/api/wechat/share-log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
 /** F.1 微信内自定义分享：标题/摘要/封面走活动配置，链接带 i、c 参数 */
 export default function WechatShare({
   enabled,
@@ -73,9 +112,9 @@ export default function WechatShare({
     let cancelled = false;
 
     async function setup() {
+      const pageUrl = window.location.href.split("#")[0];
       try {
         // 签名 URL 必须是浏览器当前地址（去 hash），与分享出去的助力链接无关。
-        const pageUrl = window.location.href.split("#")[0];
         const debug = /(?:\?|&)wxdebug=1(?:&|$)/.test(window.location.search);
         const response = await fetch(
           `/api/wechat/jssdk?url=${encodeURIComponent(pageUrl)}`,
@@ -85,10 +124,9 @@ export default function WechatShare({
             reason?: string;
             message?: string;
           } | null;
-          console.warn(
-            "[WechatShare] jssdk 签名失败",
-            body?.reason || body?.message || response.status,
-          );
+          const reason = body?.reason || body?.message || String(response.status);
+          console.warn("[WechatShare] jssdk 签名失败", reason);
+          reportShareLog("jssdk_sign_fail", { message: reason, pageUrl });
           return;
         }
         const config = (await response.json()) as {
@@ -101,7 +139,16 @@ export default function WechatShare({
         if (cancelled) return;
 
         const wx = (window as unknown as { wx?: WxApi }).wx;
-        if (!wx) return;
+        if (!wx) {
+          reportShareLog("init_exception", {
+            message: "window.wx missing",
+            pageUrl,
+          });
+          return;
+        }
+
+        const shareLink = link || pageUrl;
+        const coverUrl = toAbsoluteUrl(cover);
 
         wx.config({
           debug,
@@ -113,33 +160,53 @@ export default function WechatShare({
         });
 
         wx.error((res) => {
-          console.warn("[WechatShare] wx.config 失败", res?.errMsg || res);
+          const message = res?.errMsg || "wx.config error";
+          console.warn("[WechatShare] wx.config 失败", message);
+          reportShareLog("wx_config_error", {
+            message,
+            pageUrl,
+            shareLink,
+          });
         });
-
-        // 分享出去的链接才是带归因参数的助力链接；无 customer 时降级为当前地址
-        const shareLink = link || pageUrl;
-        const coverUrl = toAbsoluteUrl(cover);
 
         wx.ready(() => {
           if (cancelled) return;
+          reportShareLog("wx_ready_ok", { pageUrl, shareLink });
           wx.updateAppMessageShareData({
             title,
             desc,
             link: shareLink,
             ...(coverUrl ? { imgUrl: coverUrl } : {}),
-            fail: (res) =>
-              console.warn("[WechatShare] 好友分享设置失败", res?.errMsg),
+            fail: (res) => {
+              const message = res?.errMsg || "updateAppMessageShareData fail";
+              console.warn("[WechatShare] 好友分享设置失败", message);
+              reportShareLog("share_update_fail", {
+                message: `app:${message}`,
+                pageUrl,
+                shareLink,
+              });
+            },
           });
           wx.updateTimelineShareData({
             title,
             link: shareLink,
             ...(coverUrl ? { imgUrl: coverUrl } : {}),
-            fail: (res) =>
-              console.warn("[WechatShare] 朋友圈分享设置失败", res?.errMsg),
+            fail: (res) => {
+              const message = res?.errMsg || "updateTimelineShareData fail";
+              console.warn("[WechatShare] 朋友圈分享设置失败", message);
+              reportShareLog("share_update_fail", {
+                message: `timeline:${message}`,
+                pageUrl,
+                shareLink,
+              });
+            },
           });
         });
       } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "WechatShare init exception";
         console.warn("[WechatShare] 初始化异常", error);
+        reportShareLog("init_exception", { message, pageUrl });
       }
     }
 
