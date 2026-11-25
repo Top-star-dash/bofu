@@ -86,7 +86,18 @@ export type ModalKind =
   | "lead"
   | "rules"
   | "prizes"
+  | "drawResult"
   | "help"
   | "consultant"
   | "maps"
   | null;
+
+export type PrizeRecordClient = {
+  id: string;
+  prizeName: string;
+  prizeLevel: string;
+  isWin: boolean;
+  redeemStatus: string;
+  createdAt: string;
+  redeemCode: string;
+};

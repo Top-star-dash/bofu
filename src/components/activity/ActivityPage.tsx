@@ -1,7 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { ActivityClient, CustomerClient, ModalKind } from "./types";
+import type {
+  ActivityClient,
+  CustomerClient,
+  ModalKind,
+  PrizeRecordClient,
+} from "./types";
 import WechatShare from "./WechatShare";
 import { useStayTracking } from "./useStayTracking";
 import { safeHttpUrl, safeMediaUrl } from "@/lib/urls";
@@ -63,6 +68,11 @@ export default function ActivityPage({
   const [redeemPassword, setRedeemPassword] = useState("");
   const [redeemBusy, setRedeemBusy] = useState(false);
   const [redeemError, setRedeemError] = useState("");
+  const [lastDraw, setLastDraw] = useState<PrizeRecordClient | null>(null);
+  const [imagePreview, setImagePreview] = useState<{
+    src: string;
+    title: string;
+  } | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const posterRef = useRef<HTMLDialogElement>(null);
 
@@ -237,27 +247,26 @@ export default function ActivityPage({
     }
 
     const result = data.result;
+    const record: PrizeRecordClient = {
+      id: result.id,
+      prizeName: result.prizeName,
+      prizeLevel: result.prizeLevel,
+      isWin: result.isWin,
+      redeemStatus: result.redeemStatus,
+      createdAt: new Date().toISOString(),
+      redeemCode: result.redeemCode,
+    };
+    setLastDraw(record);
     setCustomer((prev) =>
       prev
         ? {
             ...prev,
             drawChance: data.drawChance ?? prev.drawChance,
-            prizes: [
-              {
-                id: result.id,
-                prizeName: result.prizeName,
-                prizeLevel: result.prizeLevel,
-                isWin: result.isWin,
-                redeemStatus: result.redeemStatus,
-                createdAt: new Date().toISOString(),
-                redeemCode: result.redeemCode,
-              },
-              ...prev.prizes,
-            ],
+            prizes: [record, ...prev.prizes],
           }
         : prev,
     );
-    setModal("prizes");
+    setModal("drawResult");
   }
 
   async function copyRedeemCode(code: string) {
@@ -327,16 +336,22 @@ export default function ActivityPage({
         setRedeemError(data.message || "核销失败");
         return;
       }
+      const nextStatus = data.redeemStatus || "REDEEMED";
       setCustomer((prev) =>
         prev
           ? {
               ...prev,
               prizes: prev.prizes.map((item) =>
                 item.redeemCode === code
-                  ? { ...item, redeemStatus: data.redeemStatus || "REDEEMED" }
+                  ? { ...item, redeemStatus: nextStatus }
                   : item,
               ),
             }
+          : prev,
+      );
+      setLastDraw((prev) =>
+        prev && prev.redeemCode === code
+          ? { ...prev, redeemStatus: nextStatus }
           : prev,
       );
       setRedeemTarget(null);
@@ -660,7 +675,23 @@ export default function ActivityPage({
               {activity.highlightAssets.map((asset) => (
                 <article key={asset.id}>
                   {asset.imageUrl ? (
-                    <img src={asset.imageUrl} alt={asset.title || "项目亮点"} loading="lazy" />
+                    <button
+                      type="button"
+                      className="media-thumb"
+                      title="点击放大预览"
+                      onClick={() =>
+                        setImagePreview({
+                          src: asset.imageUrl,
+                          title: asset.title || "项目亮点",
+                        })
+                      }
+                    >
+                      <img
+                        src={asset.imageUrl}
+                        alt={asset.title || "项目亮点"}
+                        loading="lazy"
+                      />
+                    </button>
                   ) : null}
                   <div>
                     <strong>{asset.title}</strong>
@@ -682,7 +713,23 @@ export default function ActivityPage({
               className={`property-card ${index % 2 ? "text-right" : ""}`}
               key={asset.id}
             >
-              <img src={asset.imageUrl} alt={asset.title || "楼盘图片"} loading="lazy" />
+              <button
+                type="button"
+                className="media-thumb property-thumb"
+                title="点击放大预览"
+                onClick={() =>
+                  setImagePreview({
+                    src: asset.imageUrl,
+                    title: asset.title || "楼盘图片",
+                  })
+                }
+              >
+                <img
+                  src={asset.imageUrl}
+                  alt={asset.title || "楼盘图片"}
+                  loading="lazy"
+                />
+              </button>
               <div>
                 <strong>{asset.title}</strong>
                 <p>{asset.subtitle}</p>
@@ -966,6 +1013,117 @@ export default function ActivityPage({
               </>
             )}
 
+            {modal === "drawResult" && lastDraw && (
+              <>
+                <span>抽奖结果</span>
+                <h2 id="modal-title">{lastDraw.prizeName}</h2>
+                <ul className="prize-list">
+                  <li className={lastDraw.isWin ? "is-latest" : undefined}>
+                    <div className="prize-line">
+                      <strong>
+                        {lastDraw.prizeLevel} · {lastDraw.prizeName}
+                      </strong>
+                      <em
+                        className={`redeem-badge redeem-${lastDraw.redeemStatus.toLowerCase()}`}
+                      >
+                        {lastDraw.isWin
+                          ? REDEEM_LABELS[lastDraw.redeemStatus] ||
+                            lastDraw.redeemStatus
+                          : "未中奖"}
+                      </em>
+                    </div>
+                    {lastDraw.isWin && (
+                      <div className="redeem-code">
+                        <small>核销码</small>
+                        <b>{lastDraw.redeemCode}</b>
+                        <button
+                          type="button"
+                          onClick={() => copyRedeemCode(lastDraw.redeemCode)}
+                        >
+                          复制
+                        </button>
+                      </div>
+                    )}
+                    <span>
+                      {new Date(lastDraw.createdAt).toLocaleString("zh-CN")}
+                    </span>
+                    {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
+                      <p className="redeem-tip">
+                        到访请出示核销码，现场核销后失效
+                      </p>
+                    )}
+                    {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
+                      redeemTarget === lastDraw.redeemCode ? (
+                        <form
+                          className="redeem-inline"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void submitRedeem(lastDraw.redeemCode);
+                          }}
+                        >
+                          <input
+                            value={redeemPassword}
+                            onChange={(event) =>
+                              setRedeemPassword(event.target.value)
+                            }
+                            inputMode="numeric"
+                            autoComplete="off"
+                            maxLength={12}
+                            placeholder="工作人员输入核销密码"
+                            aria-label="核销密码"
+                          />
+                          <button type="submit" disabled={redeemBusy}>
+                            {redeemBusy ? "核销中…" : "确认核销"}
+                          </button>
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => {
+                              setRedeemTarget(null);
+                              setRedeemError("");
+                            }}
+                          >
+                            取消
+                          </button>
+                          {redeemError ? (
+                            <em className="error-text">{redeemError}</em>
+                          ) : null}
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          className="redeem-start"
+                          onClick={() => {
+                            setRedeemTarget(lastDraw.redeemCode);
+                            setRedeemPassword("");
+                            setRedeemError("");
+                          }}
+                        >
+                          现场核销
+                        </button>
+                      )
+                    )}
+                    {!lastDraw.isWin && (
+                      <p className="redeem-tip">
+                        未中奖也可邀请好友助力，再得抽奖机会。
+                      </p>
+                    )}
+                  </li>
+                </ul>
+                <p>
+                  请于 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}{" "}
+                  前到 {activity.address} 现场领取。
+                </p>
+                <button
+                  type="button"
+                  className="submit-button"
+                  onClick={() => setModal("prizes")}
+                >
+                  查看我的奖品
+                </button>
+              </>
+            )}
+
             {modal === "prizes" && (
               <>
                 <span>我的奖品</span>
@@ -974,17 +1132,12 @@ export default function ActivityPage({
                 </h2>
                 {customer?.prizes.length ? (
                   <ul className="prize-list">
-                    {customer.prizes.map((item, index) => {
+                    {customer.prizes.map((item) => {
                       const status = item.isWin
                         ? REDEEM_LABELS[item.redeemStatus] || item.redeemStatus
                         : "未中奖";
                       return (
-                        <li
-                          key={item.id}
-                          className={
-                            index === 0 && item.isWin ? "is-latest" : undefined
-                          }
-                        >
+                        <li key={item.id}>
                           <div className="prize-line">
                             <strong>
                               {item.prizeLevel} · {item.prizeName}
@@ -1015,7 +1168,6 @@ export default function ActivityPage({
                               到访请出示核销码，现场核销后失效
                             </p>
                           )}
-                          {/* C.6.1 客户侧现场核销：工作人员在本机输入核销密码 */}
                           {item.isWin && item.redeemStatus === "PENDING" && (
                             redeemTarget === item.redeemCode ? (
                               <form
@@ -1114,6 +1266,31 @@ export default function ActivityPage({
             )}
           </div>
         </dialog>
+      )}
+
+      {imagePreview && (
+        <div
+          className="image-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={imagePreview.title}
+          onClick={() => setImagePreview(null)}
+        >
+          <button
+            type="button"
+            className="image-lightbox-close"
+            aria-label="关闭预览"
+            onClick={() => setImagePreview(null)}
+          >
+            ×
+          </button>
+          <img
+            src={imagePreview.src}
+            alt={imagePreview.title}
+            onClick={(event) => event.stopPropagation()}
+          />
+          <p>{imagePreview.title}</p>
+        </div>
       )}
 
       {toast && (
