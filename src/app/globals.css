@@ -109,7 +109,74 @@ button {
 
 .page-bottom {
   background: #fff8ed;
-  box-shadow: 0 -8px 20px #6b2b2318;
+}
+
+/* 底部栏上边界：两层同色波浪叠加成起伏的浪沿，反向流动 */
+.dock-waves {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 20px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dock-waves::before,
+.dock-waves::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  /* 比容器多出一个波长，位移一个波长即可无缝循环（transform 走合成层，不重绘） */
+  width: calc(100% + 160px);
+  background-repeat: repeat-x;
+  will-change: transform;
+}
+
+/* 高浪：起伏更大，向右流动 */
+.dock-waves::before {
+  height: 20px;
+  background-size: 160px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='20' viewBox='0 0 160 20' preserveAspectRatio='none'%3E%3Cpath d='M0 11 C20 -1 60 -1 80 11 C100 23 140 23 160 11 V20 H0 Z' fill='%23fff8ed'/%3E%3C/svg%3E");
+  animation: dock-wave-flow 7s linear infinite;
+}
+
+/* 矮浪：错开半周期，向左流动，填补浪谷让轮廓更自然 */
+.dock-waves::after {
+  height: 15px;
+  background-size: 160px 15px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='15' viewBox='0 0 160 15' preserveAspectRatio='none'%3E%3Cpath d='M0 9 C20 1 60 1 80 9 C100 17 140 17 160 9 V15 H0 Z' fill='%23fff8ed'/%3E%3C/svg%3E");
+  background-position: -80px 0;
+  animation: dock-wave-flow-rev 11s linear infinite;
+}
+
+@keyframes dock-wave-flow {
+  from {
+    transform: translate3d(-160px, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes dock-wave-flow-rev {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-160px, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .dock-waves::before,
+  .dock-waves::after {
+    animation: none;
+  }
 }
 
 .loading-page {
@@ -295,11 +362,20 @@ button {
   background: transparent;
 }
 
-.wheel-plate {
+.wheel-stage {
+  position: relative;
   display: grid;
   place-items: center;
   width: 60%;
-  height: 60%;
+  aspect-ratio: 1;
+}
+
+.wheel-plate {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
 }
 
 .wheel-plate img {
@@ -762,6 +838,12 @@ button {
   overflow: hidden;
 }
 
+/* 未打开时必须彻底隐藏：上面的 display:grid 会覆盖 UA 的 dialog:not([open]) 规则 */
+.poster-dialog:not([open]),
+.modal-dialog:not([open]) {
+  display: none;
+}
+
 .poster-dialog::backdrop,
 .modal-dialog::backdrop {
   background: #41150eb8;
@@ -782,6 +864,12 @@ button {
   height: 80%;
   max-height: 80%;
   overflow: auto;
+}
+
+/* 通用弹窗按内容高度收缩，避免下方大片空白 */
+.modal-panel {
+  height: auto;
+  min-height: 200px;
 }
 
 .poster-panel {
@@ -1274,4 +1362,376 @@ button {
   .admin-login-form {
     padding: 28px 24px 32px;
   }
+}
+/* ===== 转盘动效 ===== */
+.image-draw {
+  position: relative;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 26px solid #ffd16b;
+  filter: drop-shadow(0 3px 4px #7a1f14aa);
+  transform: translateX(-50%);
+}
+
+.wheel-plate {
+  transition: transform 3.2s cubic-bezier(0.16, 0.84, 0.2, 1);
+  will-change: transform;
+}
+
+.image-draw.is-spinning .wheel-plate {
+  filter: drop-shadow(0 0 18px #ffd166aa);
+}
+
+.image-draw:disabled {
+  cursor: progress;
+}
+
+.draw-info .is-spinning-text {
+  color: var(--gold);
+  animation: draw-blink 0.9s ease-in-out infinite;
+}
+
+@keyframes draw-blink {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel-plate {
+    transition: none;
+  }
+
+  .draw-info .is-spinning-text {
+    animation: none;
+  }
+}
+
+/* ===== 中奖记录 ===== */
+.prize-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.redeem-badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.redeem-badge.redeem-pending {
+  color: #8f281f;
+  background: #ffe0a8;
+}
+
+.redeem-badge.redeem-redeemed {
+  color: #2f6b3a;
+  background: #dff3e2;
+}
+
+.redeem-badge.redeem-expired {
+  color: #7a6a5f;
+  background: #efe6dc;
+}
+
+.redeem-code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff4e0;
+}
+
+.redeem-code small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.redeem-code b {
+  flex: 1 0 100%;
+  order: 3;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.redeem-code button {
+  order: 2;
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border: 1px solid #e0a86a;
+  border-radius: 999px;
+  color: #8f281f;
+  background: white;
+  font-size: 11px;
+}
+
+.prize-list li.is-latest {
+  margin: 0 -8px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: #fff8e9;
+}
+
+.prize-list .redeem-tip {
+  margin: 0;
+  color: #b83224;
+  font-size: 11px;
+}
+
+/* ===== 微信授权门 ===== */
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #2b0f0bcc;
+}
+
+.auth-gate-panel {
+  width: min(100%, 340px);
+  padding: 24px 20px;
+  border-radius: 16px;
+  color: var(--ink);
+  background: #fff8ed;
+  box-shadow: 0 18px 48px #00000055;
+  text-align: center;
+}
+
+.auth-gate-panel h2 {
+  margin: 0 0 10px;
+  font-size: 19px;
+}
+
+.auth-gate-panel p {
+  margin: 0;
+  color: #6b5240;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.auth-gate-panel .submit-button {
+  margin-top: 16px;
+}
+
+.auth-gate-panel small {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* ===== 后台：筛选 / 分页 / 核销台 ===== */
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.admin-toolbar label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-toolbar input,
+.admin-toolbar select {
+  min-width: 140px;
+  padding: 9px 11px;
+  border: 1px solid #e4c69f;
+  border-radius: 8px;
+  background: #fffaf3;
+  font-size: 13px;
+}
+
+.admin-toolbar .admin-btn {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background: #b83224;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.admin-toolbar .admin-btn.secondary {
+  color: #8f281f;
+  background: #ffe6b8;
+}
+
+.admin-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.admin-pager a,
+.admin-pager span {
+  padding: 6px 10px;
+  border: 1px solid #e4c69f;
+  border-radius: 8px;
+  color: #8f281f;
+  background: white;
+  text-decoration: none;
+}
+
+.admin-pager span[aria-current] {
+  border-color: #b83224;
+  color: white;
+  background: #b83224;
+}
+
+.admin-pager .is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.redeem-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.15fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.redeem-form {
+  display: grid;
+  gap: 12px;
+}
+
+.redeem-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.redeem-form input {
+  padding: 11px 12px;
+  border: 1px solid #e4c69f;
+  border-radius: 8px;
+  background: #fffaf3;
+  font-size: 15px;
+}
+
+.redeem-form button {
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background: #b83224;
+  font-weight: 700;
+}
+
+.redeem-form button:disabled {
+  opacity: 0.65;
+}
+
+.redeem-ticket {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px dashed #e0a86a;
+  border-radius: 12px;
+  background: #fffaf3;
+}
+
+.redeem-ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.redeem-ticket h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.redeem-ticket dl {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 6px 10px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.redeem-ticket dt {
+  color: var(--muted);
+}
+
+.redeem-ticket dd {
+  margin: 0;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.redeem-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.redeem-status.pending {
+  color: #8f281f;
+  background: #ffe0a8;
+}
+
+.redeem-status.redeemed {
+  color: #2f6b3a;
+  background: #dff3e2;
+}
+
+.redeem-status.expired {
+  color: #7a6a5f;
+  background: #efe6dc;
+}
+
+.redeem-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .redeem-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-table td .admin-btn {
+  padding: 6px 10px;
+  font-size: 12px;
 }

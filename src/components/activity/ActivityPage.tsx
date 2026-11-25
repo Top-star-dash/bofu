@@ -6,6 +6,30 @@ import type { ActivityClient, CustomerClient, ModalKind } from "./types";
 type Props = {
   shareCode?: string;
   inviterId?: string;
+  /** 生产环境且无微信会话时需要先授权 */
+  authRequired?: boolean;
+  /** 授权失败原因（unconfigured / browser / denied / state / exchange / activity） */
+  authErrorReason?: string | null;
+  inWechat?: boolean;
+};
+
+const SPIN_DURATION_MS = 3200;
+const SPIN_TURNS = 5;
+
+const REDEEM_LABELS: Record<string, string> = {
+  PENDING: "待核销",
+  REDEEMED: "已核销",
+  EXPIRED: "已失效",
+};
+
+const AUTH_ERROR_TEXT: Record<string, string> = {
+  unconfigured: "公众号授权未配置，请联系运营人员",
+  browser: "请使用微信打开本活动页面",
+  denied: "已取消微信授权",
+  state: "授权状态已过期，请重新授权",
+  exchange: "微信授权失败，请重新授权",
+  activity: "活动未配置，暂时无法授权",
+  unknown: "授权失败，请重新授权",
 };
 
 function formatRange(startAt: string, endAt: string) {
@@ -16,7 +40,13 @@ function formatRange(startAt: string, endAt: string) {
   return `${fmt(start)} 至 ${fmt(end)}`;
 }
 
-export default function ActivityPage({ shareCode, inviterId }: Props) {
+export default function ActivityPage({
+  shareCode,
+  inviterId,
+  authRequired = false,
+  authErrorReason = null,
+  inWechat = false,
+}: Props) {
   const [activity, setActivity] = useState<ActivityClient | null>(null);
   const [customer, setCustomer] = useState<CustomerClient | null>(null);
   const [notice, setNotice] = useState(0);
@@ -28,6 +58,9 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
     null,
   );
   const [drawing, setDrawing] = useState(false);
+  const [spinning, setSpinning] = useState(false);
+  const [wheelAngle, setWheelAngle] = useState(0);
+  const angleRef = useRef(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const posterRef = useRef<HTMLDialogElement>(null);
 
@@ -77,8 +110,7 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
   }, [modal]);
 
   useEffect(() => {
-    if (!poster || !activity) return;
-    setPosterSeconds(5);
+    if (!poster || !activity || authRequired) return;
     const frame = window.requestAnimationFrame(() => {
       const dialog = posterRef.current;
       if (dialog && !dialog.open) dialog.showModal();
@@ -94,7 +126,7 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
       window.clearInterval(tick);
       window.clearTimeout(timer);
     };
-  }, [poster, activity]);
+  }, [poster, activity, authRequired]);
 
   async function submitLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,6 +155,19 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
     showToast("留资成功，已获得抽奖机会", "info");
   }
 
+  function startSpin() {
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // 落点固定在 360° 整数倍：转盘图是合成图，停住时保持正向，不歪斜
+    const next =
+      (Math.round(angleRef.current / 360) + SPIN_TURNS) * 360;
+    angleRef.current = next;
+    setWheelAngle(next);
+    setSpinning(true);
+    return reduceMotion ? 0 : SPIN_DURATION_MS;
+  }
+
   async function draw() {
     if (!activity || drawing) return;
     if (activity.status !== "RUNNING") {
@@ -139,31 +184,62 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
     }
 
     setDrawing(true);
-    const response = await fetch("/api/draw", { method: "POST" });
-    const data = await response.json();
+    const spinMs = startSpin();
+    const startedAt = Date.now();
+
+    let data: {
+      message?: string;
+      code?: string;
+      drawChance?: number;
+      result?: {
+        id: string;
+        prizeName: string;
+        prizeLevel: string;
+        isWin: boolean;
+        redeemStatus: string;
+        redeemCode: string;
+      };
+    } | null = null;
+    let ok = false;
+
+    try {
+      const response = await fetch("/api/draw", { method: "POST" });
+      data = await response.json();
+      ok = response.ok;
+    } catch {
+      data = { message: "网络异常，请稍后重试" };
+    }
+
+    // 转盘至少转满一圈时长，避免接口秒回导致动效闪断
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < spinMs) {
+      await new Promise((resolve) => window.setTimeout(resolve, spinMs - elapsed));
+    }
+    setSpinning(false);
     setDrawing(false);
 
-    if (!response.ok) {
-      if (data.code === "NEED_LEAD") setModal("lead");
-      else if (data.code === "NO_CHANCE") setModal("help");
-      else showToast(data.message || "抽奖失败");
+    if (!ok || !data?.result) {
+      if (data?.code === "NEED_LEAD") setModal("lead");
+      else if (data?.code === "NO_CHANCE") setModal("help");
+      else showToast(data?.message || "抽奖失败");
       return;
     }
 
+    const result = data.result;
     setCustomer((prev) =>
       prev
         ? {
             ...prev,
-            drawChance: data.drawChance,
+            drawChance: data.drawChance ?? prev.drawChance,
             prizes: [
               {
-                id: data.result.id,
-                prizeName: data.result.prizeName,
-                prizeLevel: data.result.prizeLevel,
-                isWin: data.result.isWin,
-                redeemStatus: data.result.redeemStatus,
+                id: result.id,
+                prizeName: result.prizeName,
+                prizeLevel: result.prizeLevel,
+                isWin: result.isWin,
+                redeemStatus: result.redeemStatus,
                 createdAt: new Date().toISOString(),
-                redeemCode: data.result.redeemCode,
+                redeemCode: result.redeemCode,
               },
               ...prev.prizes,
             ],
@@ -171,6 +247,15 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
         : prev,
     );
     setModal("prizes");
+  }
+
+  async function copyRedeemCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      showToast("核销码已复制", "info");
+    } catch {
+      showToast(`核销码：${code}`, "info");
+    }
   }
 
   useEffect(() => {
@@ -273,24 +358,33 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
         {/* 抽奖区域 */}
         <div className="draw-area" id="draw-area">
           <button
-            className="image-draw"
+            className={`image-draw${spinning ? " is-spinning" : ""}`}
             type="button"
             onClick={draw}
             aria-label="点击转盘抽奖"
+            aria-busy={spinning}
             disabled={drawing}
           >
-            <span className="wheel-plate">
-              {/* 转盘图片 */}
-              <img
-                src={activity.wheelImageUrl || "/activity/大圆盘2.png"}
-                alt="点击转盘抽奖"
-              />
+            <span className="wheel-stage">
+              <span className="wheel-pointer" aria-hidden="true" />
+              <span
+                className="wheel-plate"
+                style={{ transform: `rotate(${wheelAngle}deg)` }}
+              >
+                {/* 转盘图片 */}
+                <img
+                  src={activity.wheelImageUrl || "/activity/大圆盘2.png"}
+                  alt="点击转盘抽奖"
+                />
+              </span>
             </span>
           </button>
           {/* 抽奖信息 */}
           <div className="draw-info">
             {/* 活动进行中：显示剩余抽奖次数 */}
-            {activity.status === "RUNNING" ? (
+            {spinning ? (
+              <strong className="is-spinning-text">好运正在开启…</strong>
+            ) : activity.status === "RUNNING" ? (
               <strong>当前剩余抽奖次数：{customer?.drawChance ?? 0} 次</strong>
             ) : (
               <strong>
@@ -445,6 +539,7 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
       </div>
 
       <div className="page-bottom">
+        <div className="dock-waves" aria-hidden="true" />
         <div className="bottom-dock">
           {consultant && (
             <button
@@ -477,7 +572,7 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
         </div>
       </div>
 
-      {poster && (
+      {poster && !authRequired && (
         <dialog
           ref={posterRef}
           className="poster-dialog"
@@ -620,17 +715,50 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
                 </h2>
                 {customer?.prizes.length ? (
                   <ul className="prize-list">
-                    {customer.prizes.map((item) => (
-                      <li key={item.id}>
-                        <strong>
-                          {item.prizeLevel} · {item.prizeName}
-                        </strong>
-                        <span>
-                          {item.isWin ? item.redeemStatus : "未中奖"} ·{" "}
-                          {new Date(item.createdAt).toLocaleString("zh-CN")}
-                        </span>
-                      </li>
-                    ))}
+                    {customer.prizes.map((item, index) => {
+                      const status = item.isWin
+                        ? REDEEM_LABELS[item.redeemStatus] || item.redeemStatus
+                        : "未中奖";
+                      return (
+                        <li
+                          key={item.id}
+                          className={
+                            index === 0 && item.isWin ? "is-latest" : undefined
+                          }
+                        >
+                          <div className="prize-line">
+                            <strong>
+                              {item.prizeLevel} · {item.prizeName}
+                            </strong>
+                            <em
+                              className={`redeem-badge redeem-${item.redeemStatus.toLowerCase()}`}
+                            >
+                              {status}
+                            </em>
+                          </div>
+                          {item.isWin && (
+                            <div className="redeem-code">
+                              <small>核销码</small>
+                              <b>{item.redeemCode}</b>
+                              <button
+                                type="button"
+                                onClick={() => copyRedeemCode(item.redeemCode)}
+                              >
+                                复制
+                              </button>
+                            </div>
+                          )}
+                          <span>
+                            {new Date(item.createdAt).toLocaleString("zh-CN")}
+                          </span>
+                          {item.isWin && item.redeemStatus === "PENDING" && (
+                            <p className="redeem-tip">
+                              到访请出示核销码，现场核销后失效
+                            </p>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <p>完成抽奖后，中奖记录会显示在这里。</p>
@@ -675,6 +803,35 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
             )}
           </div>
         </dialog>
+      )}
+
+      {authRequired && (
+        <div
+          className="auth-gate"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="auth-gate-title"
+        >
+          <div className="auth-gate-panel">
+            <h2 id="auth-gate-title">微信授权后参与</h2>
+            <p>
+              {authErrorReason
+                ? AUTH_ERROR_TEXT[authErrorReason] || AUTH_ERROR_TEXT.unknown
+                : "首次参与需要获取你的微信身份，用于记录抽奖次数与中奖信息。"}
+            </p>
+            <a
+              className="submit-button"
+              href={`/api/auth/wechat/start?r=${encodeURIComponent("/")}${
+                shareCode ? `&c=${encodeURIComponent(shareCode)}` : ""
+              }${inviterId ? `&i=${encodeURIComponent(inviterId)}` : ""}`}
+            >
+              {authErrorReason ? "重新授权" : "微信授权并参与"}
+            </a>
+            {!inWechat && (
+              <small>当前不在微信内，请从公众号菜单或微信扫码打开本页面。</small>
+            )}
+          </div>
+        </div>
       )}
 
       {toast && (

@@ -1,13 +1,15 @@
 import Link from "next/link";
 import LogoutButton from "@/components/admin/LogoutButton";
 import type { AdminSession } from "@/lib/auth";
+import { hasPermission, type PermissionCode } from "@/lib/permissions";
 
-const NAV = [
+const NAV: Array<{ href: string; label: string; permission?: PermissionCode }> = [
   { href: "/admin", label: "数据概览" },
-  { href: "/admin/users", label: "用户权限" },
-  { href: "/admin/prizes", label: "奖品管理" },
-  { href: "/admin/consultants", label: "顾问管理" },
-  { href: "/admin/leads", label: "线索管理" },
+  { href: "/admin/redeem", label: "核销台", permission: "redeem" },
+  { href: "/admin/leads", label: "线索管理", permission: "leads" },
+  { href: "/admin/prizes", label: "奖品管理", permission: "prizes" },
+  { href: "/admin/consultants", label: "顾问管理", permission: "consultants" },
+  { href: "/admin/users", label: "用户权限", permission: "users" },
 ];
 
 export default function AdminShell({
@@ -19,11 +21,17 @@ export default function AdminShell({
   current: string;
   children: React.ReactNode;
 }) {
+  const items = NAV.filter(
+    (item) =>
+      !item.permission ||
+      hasPermission(session.permissions, item.permission, session.isSuperAdmin),
+  );
+
   return (
     <div className="admin-body admin-shell">
       <aside className="admin-side">
         <h1>福美城管理后台</h1>
-        {NAV.map((item) => (
+        {items.map((item) => (
           <Link
             key={item.href}
             href={item.href}
