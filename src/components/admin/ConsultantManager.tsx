@@ -30,6 +30,7 @@ export default function ConsultantManager({
   const router = useRouter();
   const [rows, setRows] = useState<ConsultantRow[]>(initial);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [tab, setTab] = useState<"list" | "create" | "import">("list");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -166,11 +167,34 @@ export default function ConsultantManager({
       .catch(() => setError(link));
   }
 
+  const tabs = [
+    { key: "list", label: "顾问列表" },
+    { key: "create", label: "新增顾问" },
+    { key: "import", label: "批量导入" },
+  ] as const;
+
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div className="flex flex-col gap-4">
+      <nav className="flex flex-wrap gap-2 border-b border-[#ead7c2] pb-3">
+        {tabs.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setTab(item.key)}
+            className={`rounded-lg px-3 py-2 text-[13px] font-bold ${
+              tab === item.key
+                ? "bg-[#b83224] text-white"
+                : "bg-[#fff2df] text-[#8f281f] hover:bg-[#ffe6b8]"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
       {error && <p className="error-text">{error}</p>}
       {message && <p className="ok-text">{message}</p>}
 
+      {tab === "list" && (
       <div className="admin-card">
         <h3 style={{ marginTop: 0 }}>顾问列表</h3>
         <div className="admin-table-scroll">
@@ -368,10 +392,11 @@ export default function ConsultantManager({
           </table>
         </div>
       </div>
+      )}
 
-      <div className="admin-grid-two">
-        <div className="admin-card">
-          <h3 style={{ marginTop: 0 }}>新增顾问</h3>
+      {tab === "create" && (
+      <div className="admin-card max-w-xl">
+        <h3 style={{ marginTop: 0 }}>新增顾问</h3>
           <form className="admin-form" onSubmit={create}>
             <label>
               姓名
@@ -395,10 +420,12 @@ export default function ConsultantManager({
             </label>
             <button type="submit">新增</button>
           </form>
-        </div>
+      </div>
+      )}
 
-        <div className="admin-card">
-          <h3 style={{ marginTop: 0 }}>批量导入</h3>
+      {tab === "import" && (
+      <div className="admin-card max-w-xl">
+        <h3 style={{ marginTop: 0 }}>批量导入</h3>
           <p className="redeem-hint">
             每行一条，格式：姓名,电话,分享码,团队（团队可省略）。分享码重复的行会自动跳过。
           </p>
@@ -409,8 +436,8 @@ export default function ConsultantManager({
             </label>
             <button type="submit">开始导入</button>
           </form>
-        </div>
       </div>
+      )}
     </div>
   );
 }

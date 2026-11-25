@@ -61,7 +61,7 @@ export default async function AdminHomePage() {
         </article>
       </div>
 
-      <div className="admin-card">
+      <div className="admin-card flex flex-col gap-3">
         <h3 style={{ marginTop: 0 }}>当前活动</h3>
         {activity ? (
           <div className="flex flex-col gap-2 text-[13px] leading-5">
@@ -75,11 +75,11 @@ export default async function AdminHomePage() {
         ) : (
           <p>尚未配置活动</p>
         )}
-        <p>
+        <div>
           <Link className="admin-btn secondary" href="/admin/stats">
             查看销售转化看板
           </Link>
-        </p>
+        </div>
       </div>
     </AdminShell>
   );

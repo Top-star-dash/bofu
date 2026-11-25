@@ -3,7 +3,6 @@ export const instant = false;
 import { redirect } from "next/navigation";
 import ActivitySettings from "@/components/admin/ActivitySettings";
 import AdminShell, { firstAllowedHref } from "@/components/admin/AdminShell";
-import NoticeManager from "@/components/admin/NoticeManager";
 import { canUse } from "@/lib/admin-guard";
 import { getCurrentActivity } from "@/lib/activity";
 import { getAdminSession } from "@/lib/auth";
@@ -63,16 +62,14 @@ export default async function AdminSettingsPage() {
                 tierAStaySec: activity.tierAStaySec,
                 tierBStaySec: activity.tierBStaySec,
               }}
+              notices={notices.map((notice) => ({
+                id: notice.id,
+                content: notice.content,
+                sortOrder: notice.sortOrder,
+                enabled: notice.enabled,
+              }))}
             />
           </div>
-          <NoticeManager
-            notices={notices.map((notice) => ({
-              id: notice.id,
-              content: notice.content,
-              sortOrder: notice.sortOrder,
-              enabled: notice.enabled,
-            }))}
-          />
         </>
       ) : (
         <div className="admin-card">

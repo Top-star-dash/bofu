@@ -42,25 +42,32 @@ export default function ImageField({ label, value, onChange, hint }: Props) {
   }
 
   return (
-    <div className="image-field">
-      <span className="image-field-label">{label}</span>
-      <div className="image-field-row">
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-[12px] font-bold text-[#5a241a]">{label}</span>
+      <div className="flex min-w-0 items-center gap-2">
         <input
+          className="min-w-0 flex-1 rounded-lg border border-[#e4c69f] bg-[#fffaf3] px-3 py-2 text-[13px]"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={hint || "图片地址，或点击右侧上传"}
         />
-        <label className="upload-btn">
+        <label className="shrink-0 cursor-pointer rounded-lg bg-[#ffe6b8] px-3 py-2 text-[12px] font-bold text-[#8f281f]">
           {busy ? "上传中…" : "上传"}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             onChange={upload}
-            hidden
+            className="hidden"
           />
         </label>
       </div>
-      {value ? <img className="image-thumb" src={value} alt="" /> : null}
+      {value ? (
+        <img
+          className="h-16 w-16 rounded-lg border border-[#f0e2d2] object-cover"
+          src={value}
+          alt={label}
+        />
+      ) : null}
       {error ? <em className="error-text">{error}</em> : null}
     </div>
   );
