@@ -70,6 +70,7 @@ export type CustomerClient = {
 };
 
 export type ModalKind =
+  | "auth"
   | "lead"
   | "rules"
   | "prizes"

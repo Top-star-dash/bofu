@@ -6,7 +6,7 @@ import type { ActivityClient, CustomerClient, ModalKind } from "./types";
 type Props = {
   shareCode?: string;
   inviterId?: string;
-  /** 生产环境且无微信会话时需要先授权 */
+  /** 生产环境且无微信会话：可浏览，抽奖/留资前需授权 */
   authRequired?: boolean;
   /** 授权失败原因（unconfigured / browser / denied / state / exchange / activity） */
   authErrorReason?: string | null;
@@ -110,7 +110,7 @@ export default function ActivityPage({
   }, [modal]);
 
   useEffect(() => {
-    if (!poster || !activity || authRequired) return;
+    if (!poster || !activity) return;
     const frame = window.requestAnimationFrame(() => {
       const dialog = posterRef.current;
       if (dialog && !dialog.open) dialog.showModal();
@@ -126,10 +126,39 @@ export default function ActivityPage({
       window.clearInterval(tick);
       window.clearTimeout(timer);
     };
-  }, [poster, activity, authRequired]);
+  }, [poster, activity]);
+
+  useEffect(() => {
+    if (!authErrorReason) return;
+    showToast(
+      AUTH_ERROR_TEXT[authErrorReason] || AUTH_ERROR_TEXT.unknown,
+      "info",
+    );
+  }, [authErrorReason]);
+
+  function wechatAuthHref() {
+    const query = new URLSearchParams({ r: "/" });
+    if (shareCode) query.set("c", shareCode);
+    if (inviterId) query.set("i", inviterId);
+    return `/api/auth/wechat/start?${query.toString()}`;
+  }
+
+  /** 未授权可浏览；抽奖/留资/看奖品需身份 */
+  function requireAuth(next?: Exclude<ModalKind, "auth" | null>) {
+    if (customer) {
+      if (next) setModal(next);
+      return true;
+    }
+    setModal("auth");
+    return false;
+  }
 
   async function submitLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!customer) {
+      setModal("auth");
+      return;
+    }
     const form = new FormData(event.currentTarget);
     const response = await fetch("/api/lead", {
       method: "POST",
@@ -143,6 +172,10 @@ export default function ActivityPage({
     });
     const data = await response.json();
     if (!response.ok) {
+      if (data.code === "NEED_AUTH") {
+        setModal("auth");
+        return;
+      }
       showToast(data.message || "留资失败");
       return;
     }
@@ -174,7 +207,11 @@ export default function ActivityPage({
       showToast("活动未开始或已结束");
       return;
     }
-    if (!customer?.hasLead) {
+    if (!customer) {
+      setModal("auth");
+      return;
+    }
+    if (!customer.hasLead) {
       setModal("lead");
       return;
     }
@@ -219,7 +256,8 @@ export default function ActivityPage({
     setDrawing(false);
 
     if (!ok || !data?.result) {
-      if (data?.code === "NEED_LEAD") setModal("lead");
+      if (data?.code === "NEED_AUTH") setModal("auth");
+      else if (data?.code === "NEED_LEAD") setModal("lead");
       else if (data?.code === "NO_CHANCE") setModal("help");
       else showToast(data?.message || "抽奖失败");
       return;
@@ -302,7 +340,7 @@ export default function ActivityPage({
             <img src="/activity/logo-fumei.png" alt="博富·福美城" />
           </div>
           <div className="action-line">
-            <button type="button" onClick={() => setModal("prizes")}>
+            <button type="button" onClick={() => requireAuth("prizes")}>
               我的奖品
             </button>
             <button type="button" onClick={() => setModal("rules")}>
@@ -572,7 +610,7 @@ export default function ActivityPage({
         </div>
       </div>
 
-      {poster && !authRequired && (
+      {poster && (
         <dialog
           ref={posterRef}
           className="poster-dialog"
@@ -623,6 +661,36 @@ export default function ActivityPage({
             >
               ×
             </button>
+
+            {modal === "auth" && (
+              <>
+                <span>微信授权</span>
+                <h2 id="modal-title">授权后即可抽奖</h2>
+                <p>
+                  {authErrorReason
+                    ? AUTH_ERROR_TEXT[authErrorReason] || AUTH_ERROR_TEXT.unknown
+                    : authRequired
+                      ? "抽奖与留资需要微信身份，用于记录次数与中奖信息。关闭后仍可浏览活动与楼盘内容。"
+                      : "请先完成微信授权后再参与抽奖。"}
+                </p>
+                {inWechat || !authRequired ? (
+                  <a className="submit-button" href={wechatAuthHref()}>
+                    {authErrorReason ? "重新授权" : "微信授权"}
+                  </a>
+                ) : (
+                  <p className="auth-hint">
+                    当前不在微信内，请从公众号菜单或微信扫码打开本页面后再授权。
+                  </p>
+                )}
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => setModal(null)}
+                >
+                  先逛逛
+                </button>
+              </>
+            )}
 
             {modal === "lead" && (
               <>
@@ -803,35 +871,6 @@ export default function ActivityPage({
             )}
           </div>
         </dialog>
-      )}
-
-      {authRequired && (
-        <div
-          className="auth-gate"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="auth-gate-title"
-        >
-          <div className="auth-gate-panel">
-            <h2 id="auth-gate-title">微信授权后参与</h2>
-            <p>
-              {authErrorReason
-                ? AUTH_ERROR_TEXT[authErrorReason] || AUTH_ERROR_TEXT.unknown
-                : "首次参与需要获取你的微信身份，用于记录抽奖次数与中奖信息。"}
-            </p>
-            <a
-              className="submit-button"
-              href={`/api/auth/wechat/start?r=${encodeURIComponent("/")}${
-                shareCode ? `&c=${encodeURIComponent(shareCode)}` : ""
-              }${inviterId ? `&i=${encodeURIComponent(inviterId)}` : ""}`}
-            >
-              {authErrorReason ? "重新授权" : "微信授权并参与"}
-            </a>
-            {!inWechat && (
-              <small>当前不在微信内，请从公众号菜单或微信扫码打开本页面。</small>
-            )}
-          </div>
-        </div>
       )}
 
       {toast && (

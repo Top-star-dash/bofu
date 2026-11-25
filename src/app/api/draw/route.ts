@@ -7,7 +7,10 @@ import { prisma } from "@/lib/db";
 export async function POST() {
   const session = await getCustomerSession();
   if (!session) {
-    return NextResponse.json({ message: "请先完成微信授权" }, { status: 401 });
+    return NextResponse.json(
+      { message: "请先完成微信授权", code: "NEED_AUTH" },
+      { status: 401 },
+    );
   }
 
   const activity = await getCurrentActivity();

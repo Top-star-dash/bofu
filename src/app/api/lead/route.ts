@@ -16,7 +16,10 @@ const schema = z.object({
 export async function POST(request: Request) {
   const session = await getCustomerSession();
   if (!session) {
-    return NextResponse.json({ message: "请先完成微信授权" }, { status: 401 });
+    return NextResponse.json(
+      { message: "请先完成微信授权", code: "NEED_AUTH" },
+      { status: 401 },
+    );
   }
 
   const body = await request.json().catch(() => null);

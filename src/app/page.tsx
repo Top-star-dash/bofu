@@ -29,7 +29,7 @@ export default async function Home({
   const inWechat = isWechatBrowser(headerList.get("user-agent"));
   const needsAuth = wechatMode && !session;
 
-  // 微信内且未授权：静默走一次 OAuth；失败后带 wx=fail 回来，不再重试以防跳转死循环
+  // 微信内且未授权：先走一次 OAuth；用户取消/失败后带 wx=fail 回来，可浏览页面，抽奖时再引导授权
   if (needsAuth && inWechat && wxState !== "fail") {
     const query = new URLSearchParams({ r: "/" });
     if (shareCode) query.set("c", shareCode);
