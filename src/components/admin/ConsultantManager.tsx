@@ -292,6 +292,13 @@ export default function ConsultantManager({
                         onClick={() => setExpanded(expanded === row.id ? null : row.id)}
                       >
                         {expanded === row.id ? "收起" : "详情"}
+                      </button>{" "}
+                      <button
+                        type="button"
+                        className="admin-btn secondary"
+                        onClick={() => remove(row)}
+                      >
+                        删除
                       </button>
                     </td>
                   </tr>

@@ -41,6 +41,15 @@ export default function RedeemConsole() {
   const [busy, setBusy] = useState<"query" | "confirm" | null>(null);
   const codeRef = useRef<HTMLInputElement>(null);
 
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [pwdMessage, setPwdMessage] = useState<{
+    text: string;
+    error: boolean;
+  } | null>(null);
+  const [pwdBusy, setPwdBusy] = useState(false);
+
   useEffect(() => {
     const saved = window.sessionStorage.getItem(PASSWORD_KEY);
     // 挂载后回填本次会话内已使用的核销密码，避免现场反复输入
@@ -97,6 +106,47 @@ export default function RedeemConsole() {
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void submit("query");
+  }
+
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pwdBusy) return;
+    if (!/^\d{4}$/.test(newPwd.trim())) {
+      setPwdMessage({ text: "新密码须为 4 位数字", error: true });
+      return;
+    }
+    if (newPwd.trim() !== confirmPwd.trim()) {
+      setPwdMessage({ text: "两次输入的新密码不一致", error: true });
+      return;
+    }
+
+    setPwdBusy(true);
+    setPwdMessage(null);
+    try {
+      const response = await fetch("/api/admin/redeem/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: currentPwd.trim(),
+          newPassword: newPwd.trim(),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPwdMessage({ text: data.message || "修改失败", error: true });
+        return;
+      }
+      window.sessionStorage.setItem(PASSWORD_KEY, newPwd.trim());
+      setPassword(newPwd.trim());
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+      setPwdMessage({ text: "核销密码已更新", error: false });
+    } catch {
+      setPwdMessage({ text: "网络异常，请稍后重试", error: true });
+    } finally {
+      setPwdBusy(false);
+    }
   }
 
   const status = record?.redeemStatus ?? "";
@@ -205,6 +255,66 @@ export default function RedeemConsole() {
             输入核销码查询后，会在这里显示奖品、中奖人与核销状态。
           </p>
         )}
+      </section>
+
+      <section className="admin-card" style={{ gridColumn: "1 / -1" }}>
+        <h3 style={{ marginTop: 0 }}>修改核销密码</h3>
+        <p className="redeem-hint" style={{ marginTop: 0 }}>
+          统一 4 位数字密码，修改后立即生效；现场核销与客户手机核销共用此密码。
+        </p>
+        <form className="redeem-form" onSubmit={changePassword}>
+          <label>
+            当前密码
+            <input
+              type="password"
+              value={currentPwd}
+              onChange={(event) => setCurrentPwd(event.target.value)}
+              placeholder="当前 4 位核销密码"
+              autoComplete="off"
+              inputMode="numeric"
+              maxLength={32}
+              required
+            />
+          </label>
+          <label>
+            新密码
+            <input
+              type="password"
+              value={newPwd}
+              onChange={(event) => setNewPwd(event.target.value)}
+              placeholder="新的 4 位数字"
+              autoComplete="off"
+              inputMode="numeric"
+              maxLength={4}
+              pattern="\d{4}"
+              required
+            />
+          </label>
+          <label>
+            确认新密码
+            <input
+              type="password"
+              value={confirmPwd}
+              onChange={(event) => setConfirmPwd(event.target.value)}
+              placeholder="再输入一次"
+              autoComplete="off"
+              inputMode="numeric"
+              maxLength={4}
+              pattern="\d{4}"
+              required
+            />
+          </label>
+          <div className="admin-actions">
+            <button type="submit" disabled={pwdBusy}>
+              {pwdBusy ? "保存中…" : "保存新密码"}
+            </button>
+          </div>
+          {pwdMessage && (
+            <p className={pwdMessage.error ? "error-text" : "redeem-hint"}>
+              {pwdMessage.text}
+            </p>
+          )}
+        </form>
       </section>
     </div>
   );
