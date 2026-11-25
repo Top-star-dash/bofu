@@ -32,12 +32,9 @@ const AUTH_ERROR_TEXT: Record<string, string> = {
   unknown: "授权失败，请重新授权",
 };
 
-function formatRange(startAt: string, endAt: string) {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-  const fmt = (date: Date) =>
-    `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日 ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-  return `${fmt(start)} 至 ${fmt(end)}`;
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日 ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 export default function ActivityPage({
@@ -469,7 +466,11 @@ export default function ActivityPage({
         <div className="activity-title">
           {/* 活动开始时间 */}
           {activity.status !== "ENDED" && (
-            <small>{formatRange(activity.startAt, activity.endAt)}</small>
+            <small className="activity-time">
+              <span>{formatDateTime(activity.startAt)}</span>
+              <span>至</span>
+              <span>{formatDateTime(activity.endAt)}</span>
+            </small>
           )}
           {/* 活动状态 */}
           {activity.status !== "RUNNING" && (
@@ -497,7 +498,9 @@ export default function ActivityPage({
             </span>
           </button>
           {/* C.4.1 可见的抽奖引导，不再只靠 aria-label */}
-          {/* {drawHint ? <p className="draw-hint">{drawHint}</p> : null} */}
+          {(drawHint || activity.status === "RUNNING") && (
+            <p className="draw-hint">{drawHint || "点击转盘抽奖"}</p>
+          )}
           {/* 抽奖信息 */}
           <div className="draw-info">
             {/* 活动进行中：显示剩余抽奖次数 */}
@@ -566,8 +569,8 @@ export default function ActivityPage({
 
         <section className="content-card prize-section" aria-labelledby="prizes-title" data-stay="prizes">
           <div className="section-heading">
-            <span>奖品展示</span>
-            <h2 id="prizes-title">幸运好礼，100%中奖</h2>
+            <h2>奖品展示</h2>
+            <h3 id="prizes-title">幸运好礼，100%中奖</h3>
           </div>
           {firstPrize && (
             <article className="first-prize">
@@ -576,9 +579,11 @@ export default function ActivityPage({
                 alt={firstPrize.name}
               />
               <div>
-                <small>{firstPrize.level}</small>
+                <h2 className="prize-level">{firstPrize.level}</h2>
                 <h3>{firstPrize.name}</h3>
-                <p>到访现场核销，数量有限先到先得</p>
+                <p>
+                  总量 {firstPrize.stock} / 余量 {firstPrize.remainStock}
+                </p>
               </div>
             </article>
           )}
@@ -589,9 +594,11 @@ export default function ActivityPage({
                   src={prize.imageUrl || "/activity/prize-2.jpg"}
                   alt={prize.name}
                 />
-                <small>{prize.level}</small>
+                <h2 className="prize-level">{prize.level}</h2>
                 <h3>{prize.name}</h3>
-                <p>数量有限，先到先得</p>
+                <p>
+                  总量 {prize.stock} / 余量 {prize.remainStock}
+                </p>
               </article>
             ))}
           </div>
@@ -657,8 +664,8 @@ export default function ActivityPage({
             aria-labelledby="highlight-title"
           >
             <div className="section-heading">
-              <span>项目亮点</span>
-              <h2 id="highlight-title">为什么选择福美城</h2>
+              <h2>项目亮点</h2>
+              <h3 id="highlight-title">为什么选择福美城</h3>
             </div>
             <div className="highlight-list">
               {activity.highlightAssets.map((asset) => (
@@ -678,8 +685,8 @@ export default function ActivityPage({
 
         <section className="content-card property-section" aria-labelledby="property-title" data-stay="property">
           <div className="section-heading">
-            <span>楼盘社区</span>
-            <h2 id="property-title">城芯生活，住进福美</h2>
+            <h2>楼盘社区</h2>
+            <h3 id="property-title">城芯生活，住进福美</h3>
           </div>
           {activity.propertyAssets.map((asset, index) => (
             <article
@@ -754,14 +761,14 @@ export default function ActivityPage({
         >
           <div className="poster-panel">
             <div className="poster-media">
-              <button
+              {/* <button
                 type="button"
                 className="modal-close"
                 aria-label="关闭活动海报"
                 onClick={() => setPoster(false)}
               >
                 ×
-              </button>
+              </button> */}
               <img src={posterUrl} alt="博富·福美城活动海报" />
             </div>
             <small>海报将在 {posterSeconds} 秒后自动关闭</small>

@@ -350,12 +350,21 @@ button {
   margin: 0;
 }
 
-.activity-title small {
+.activity-title small,
+.activity-title .activity-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   color: #fffaf0;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
   text-shadow: 0 1px 3px rgba(120, 20, 10, 0.95), 0 0 6px rgba(120, 20, 10, 0.7);
+}
+
+.activity-title .activity-time span {
+  display: block;
 }
 
 .status-tip {
@@ -572,18 +581,20 @@ button {
   text-align: center;
 }
 
-.section-heading span {
-  display: block;
+/* 区块标题与「活动规则」h2 同级字号 */
+.section-heading h2 {
+  margin: 0 0 8px;
   color: var(--red);
-  font-size: 14px;
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: .15em;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
 }
 
-.section-heading h2 {
-  margin: 8px 0 18px;
+.section-heading h3 {
+  margin: 0 0 18px;
   color: var(--ink);
-  font: 800 32px/1.18 Georgia, "Songti SC", serif;
+  font: 800 18px/1.25 Georgia, "Songti SC", serif;
 }
 
 .first-prize {
@@ -603,10 +614,17 @@ button {
   border-radius: 5px;
 }
 
-.first-prize small,
-.other-prizes small {
+.first-prize .prize-level,
+.other-prizes .prize-level {
+  margin: 0;
   color: var(--red);
-  font-size: 11px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.other-prizes .prize-level {
+  font-size: 16px;
 }
 
 .first-prize h3 {
@@ -643,12 +661,16 @@ button {
   object-fit: cover;
 }
 
-.other-prizes small,
+.other-prizes .prize-level,
 .other-prizes h3,
 .other-prizes p {
   display: block;
   margin-left: 10px;
   margin-right: 10px;
+}
+
+.other-prizes .prize-level {
+  margin-top: 8px;
 }
 
 .other-prizes h3 {
@@ -1819,18 +1841,36 @@ button {
   text-decoration: none;
 }
 
+.highlight-section {
+  padding: 18px 14px 16px;
+  background: #fff8eb;
+}
+
 .highlight-list {
   display: grid;
   gap: 10px;
+  padding: 4px 2px 2px;
 }
 
 .highlight-list article {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
   border-radius: 12px;
+  border: 1px solid #f0c77c;
+}
+
+.highlight-list article:nth-child(3n + 1) {
   background: #fff7e8;
+}
+
+.highlight-list article:nth-child(3n + 2) {
+  background: #ffeeda;
+}
+
+.highlight-list article:nth-child(3n + 3) {
+  background: #fde8d8;
 }
 
 .highlight-list img {
