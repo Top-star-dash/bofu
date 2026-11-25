@@ -68,6 +68,7 @@ export default function ActivityPage({
   const [redeemPassword, setRedeemPassword] = useState("");
   const [redeemBusy, setRedeemBusy] = useState(false);
   const [redeemError, setRedeemError] = useState("");
+  const [prizeTab, setPrizeTab] = useState<"PENDING" | "REDEEMED" | "EXPIRED" | "NO_WIN">("PENDING");
   const [lastDraw, setLastDraw] = useState<PrizeRecordClient | null>(null);
   const [imagePreview, setImagePreview] = useState<{
     src: string;
@@ -76,6 +77,24 @@ export default function ActivityPage({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const posterRef = useRef<HTMLDialogElement>(null);
   const previewRef = useRef<HTMLDialogElement>(null);
+
+  const prizeRecords = customer?.prizes ?? [];
+  const prizeTabs = [
+    { key: "PENDING", label: "待核销" },
+    { key: "REDEEMED", label: "已核销" },
+    { key: "EXPIRED", label: "已失效" },
+    { key: "NO_WIN", label: "未中奖" },
+  ] as const;
+  function countPrizeTab(key: (typeof prizeTabs)[number]["key"]) {
+    return prizeRecords.filter((item) =>
+      key === "NO_WIN" ? !item.isWin : item.isWin && item.redeemStatus === key,
+    ).length;
+  }
+  const visiblePrizes = prizeRecords.filter((item) =>
+    prizeTab === "NO_WIN"
+      ? !item.isWin
+      : item.isWin && item.redeemStatus === prizeTab,
+  );
 
   function showToast(text: string, type: "error" | "info" = "error") {
     setToast({ text, type });
@@ -122,6 +141,7 @@ export default function ActivityPage({
 
   useEffect(() => {
     if (!modal) return;
+    if (modal === "prizes") setPrizeTab("PENDING");
     const frame = window.requestAnimationFrame(() => {
       const dialog = dialogRef.current;
       if (dialog && !dialog.open) dialog.showModal();
@@ -848,6 +868,7 @@ export default function ActivityPage({
             >
               ×
             </button>
+            <div className="modal-scroll">
 
             {modal === "auth" && (
               <>
@@ -1145,11 +1166,30 @@ export default function ActivityPage({
               <>
                 <span>我的奖品</span>
                 <h2 id="modal-title">
-                  {customer?.prizes[0]?.prizeName || "暂时还没有中奖记录"}
+                  {prizeRecords[0]?.prizeName || "暂时还没有中奖记录"}
                 </h2>
-                {customer?.prizes.length ? (
+                <div className="prize-tabs" role="tablist" aria-label="奖品状态">
+                  {prizeTabs.map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={prizeTab === tab.key}
+                      className={prizeTab === tab.key ? "is-active" : undefined}
+                      onClick={() => {
+                        setPrizeTab(tab.key);
+                        setRedeemTarget(null);
+                        setRedeemError("");
+                      }}
+                    >
+                      {tab.label}
+                      <small>{countPrizeTab(tab.key)}</small>
+                    </button>
+                  ))}
+                </div>
+                {visiblePrizes.length ? (
                   <ul className="prize-list">
-                    {customer.prizes.map((item) => {
+                    {visiblePrizes.map((item) => {
                       const status = item.isWin
                         ? REDEEM_LABELS[item.redeemStatus] || item.redeemStatus
                         : "未中奖";
@@ -1241,9 +1281,9 @@ export default function ActivityPage({
                     })}
                   </ul>
                 ) : (
-                  <p>完成抽奖后，中奖记录会显示在这里。</p>
+                  <p className="prize-empty">该状态下暂无奖品记录。</p>
                 )}
-                <p>
+                <p className="prize-collect-tip">
                   请于 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}{" "}
                   前到 {activity.address} 现场领取。
                 </p>
@@ -1281,6 +1321,7 @@ export default function ActivityPage({
                 </div>
               </>
             )}
+            </div>
           </div>
         </dialog>
       )}

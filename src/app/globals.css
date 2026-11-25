@@ -926,10 +926,22 @@ button {
   overflow: auto;
 }
 
-/* 通用弹窗按内容高度收缩，避免下方大片空白 */
+/* 通用弹窗按内容高度收缩，但不超过视口的 80%，超出时由内部 .modal-scroll 滚动 */
 .modal-panel {
+  display: flex;
+  flex-direction: column;
   height: auto;
   min-height: 200px;
+  max-height: min(80dvh, 640px);
+  overflow: hidden;
+}
+
+.modal-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .poster-panel {
@@ -1049,6 +1061,45 @@ button {
   text-align: center;
   text-decoration: none;
   font-weight: 800;
+}
+
+.prize-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f5e2c8;
+}
+
+.prize-tabs button {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 3px;
+  border: 0;
+  border-radius: 999px;
+  color: #8a6548;
+  background: transparent;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.prize-tabs button.is-active {
+  color: white;
+  background: var(--red);
+  font-weight: 800;
+}
+
+.prize-tabs small {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.prize-empty {
+  text-align: center;
 }
 
 .prize-list {
