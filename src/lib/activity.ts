@@ -112,12 +112,15 @@ export function serializeActivityForClient(
     externalUrl: activity.externalUrl,
     shareTitle: activity.shareTitle,
     shareDesc: activity.shareDesc,
-    shareCoverUrl: activity.shareCoverUrl,
-    posterUrl: activity.posterUrl,
-    backgroundUrl: activity.backgroundUrl,
-    wheelImageUrl: activity.wheelImageUrl,
-    logoUrl: activity.logoUrl,
-    logoSubUrl: activity.logoSubUrl,
+    shareCoverUrl:
+      normalizeMediaUrl(activity.shareCoverUrl) ?? activity.shareCoverUrl,
+    posterUrl: normalizeMediaUrl(activity.posterUrl) ?? activity.posterUrl,
+    backgroundUrl:
+      normalizeMediaUrl(activity.backgroundUrl) ?? activity.backgroundUrl,
+    wheelImageUrl:
+      normalizeMediaUrl(activity.wheelImageUrl) ?? activity.wheelImageUrl,
+    logoUrl: normalizeMediaUrl(activity.logoUrl) ?? activity.logoUrl,
+    logoSubUrl: normalizeMediaUrl(activity.logoSubUrl) ?? activity.logoSubUrl,
     rulesHtml: activity.rulesHtml,
     rulesColor: activity.rulesColor,
     firstDrawChance: activity.firstDrawChance,

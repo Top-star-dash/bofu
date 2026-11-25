@@ -8,12 +8,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "缺少有效页面地址" }, { status: 400 });
   }
 
-  const config = await buildJsSdkConfig(target);
-  if (!config) {
-    return NextResponse.json({ message: "微信 JS-SDK 未配置" }, { status: 503 });
+  const result = await buildJsSdkConfig(target);
+  if (!result.ok) {
+    return NextResponse.json(
+      { message: "微信 JS-SDK 未就绪", reason: result.reason },
+      { status: 503 },
+    );
   }
 
-  return NextResponse.json(config, {
+  return NextResponse.json(result.config, {
     headers: { "Cache-Control": "no-store" },
   });
 }
