@@ -1,0 +1,16 @@
+---
+description: 进仓先读知识索引；按任务跳转文档与代码入口
+alwaysApply: true
+---
+
+# 项目知识入口
+
+开始任何功能/布局/调试任务前，先阅读仓库根目录 **`知识索引.md`**，再按其中的文档地图与「任务 → 该改哪里」打开对应文件。
+
+## 必守摘要
+
+- H5 内容区最大宽 750px；弹窗相对 `.activity-page` 约 80%；Toast 在内容区左上角。
+- 微信授权是**软拦截**：取消后可浏览，抽奖/留资/我的奖品再引导；勿恢复全屏挡浏览的 auth-gate。
+- 本地联调使用 `APP_ENV=TEST`。
+- Next.js 16 / Prisma 7 以本仓 `AGENTS.md` 与 `node_modules/next/dist/docs/`、`prisma/` 为准，勿套用过时 API。
+- 改完交互后按 `update-docs-and-commit` 同步文案并提交。

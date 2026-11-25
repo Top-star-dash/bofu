@@ -2,6 +2,8 @@
 
 Next.js 16 + Prisma 7 + PostgreSQL，包含移动端抽奖 H5 与后台管理。
 
+> **Agent / 新人入口**：[知识索引.md](./知识索引.md)（文档地图、目录入口、业务链路、易踩坑约定）。
+
 ## 本地启动
 
 ```bash
@@ -80,3 +82,19 @@ npm run lint
 npm run db:seed
 npx prisma migrate deploy
 ```
+
+## 部署（SFTP → RX）
+
+代码放在 RX 的 `/mnt/data/html/bofu`（系统盘 `/var/www` 已用 96%，数据盘 `/mnt/data` 还剩 36G），pm2 以 `127.0.0.1:3007` 运行，Apache 反代 `bofu.gdruixiang.com`；启动参数见 `ecosystem.config.cjs`。
+
+```bash
+bash scripts/deploy-sftp.sh            # 上传 + npm ci + prisma generate + build + pm2 重启
+bash scripts/deploy-sftp.sh --install  # 只到 npm ci，不构建不重启
+bash scripts/deploy-sftp.sh --upload   # 只上传代码
+bash scripts/deploy-sftp.sh --env      # 强制用本地 .env 覆盖服务器上的
+```
+
+脚本把源码打成约 30MB 的包（排除 `node_modules`、`.next`、`.git`、素材原图、`.env`），用 SFTP 传到 `/mnt/data/html/bofu/.incoming/src.tar.gz`，再 ssh 上去解包、装依赖、构建、重启 pm2。
+服务器上首次没有 `.env` 时会自动补一份，之后不再覆盖，避免把线上配置冲掉。
+
+> Windows 版 sftp 不支持 `mkdir -p`，也不认 MSYS 路径，所以脚本里目录用 ssh 建、文件用 `lcd` + 相对路径传。
