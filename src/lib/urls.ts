@@ -15,11 +15,26 @@ export function isHttpUrl(value: string | null | undefined) {
   return safeHttpUrl(value) !== null;
 }
 
-/** 内容型图片地址：允许站内相对路径与 http(s)，其余丢弃 */
-export function safeMediaUrl(value: string | null | undefined): string | null {
+/** 站内静态素材与历史上传图已批量转 WebP，引用 jpg/png 时自动指向同名 webp */
+function preferStaticWebp(text: string) {
+  return text
+    .replace(/^\/(property|activity)\/(.+)\.(jpe?g|png)$/i, "/$1/$2.webp")
+    .replace(/(\/uploads\/.+)\.(jpe?g|png)$/i, "$1.webp");
+}
+
+/**
+ * 内容型图片地址：允许站内相对路径与 http(s)，其余丢弃。
+ * 默认把站内 jpg/png 指向同名 webp；微信分享封面等不兼容 webp 的场景传 { webp: false }。
+ */
+export function safeMediaUrl(
+  value: string | null | undefined,
+  options: { webp?: boolean } = {},
+): string | null {
   const text = value?.trim();
   if (!text) return null;
-  if (text.startsWith("/") && !text.startsWith("//")) return text;
+  if (text.startsWith("/") && !text.startsWith("//")) {
+    return options.webp === false ? text : preferStaticWebp(text);
+  }
   return safeHttpUrl(text);
 }
 

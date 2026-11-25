@@ -55,8 +55,8 @@ export async function POST(request: Request) {
       .webp({ quality: WEBP_QUALITY })
       .toBuffer()
       .catch(() => null);
-    // 压缩后更小才采用，避免小图反而变大
-    if (compressed && compressed.length < input.length) {
+    // 统一输出 WebP，保证新上传素材不会回退成 jpg/png（GIF 动图仍保留原格式）
+    if (compressed) {
       output = compressed;
       outExt = "webp";
     }

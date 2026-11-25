@@ -4,8 +4,8 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const LOGIN_LOGOS = [
-  { src: "/activity/logo-future.png", alt: "未来社区" },
-  { src: "/activity/logo-fumei.png", alt: "博富·福美城" },
+  { src: "/activity/logo-future.webp", alt: "未来社区" },
+  { src: "/activity/logo-fumei.webp", alt: "博富·福美城" },
 ];
 
 export default function AdminLoginPage() {

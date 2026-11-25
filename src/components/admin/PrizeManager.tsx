@@ -166,7 +166,7 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
                   <input
                     className="admin-inline-input"
                     value={row.imageUrl}
-                    placeholder="/activity/prize-1.jpg"
+                    placeholder="/activity/prize-1.webp"
                     onChange={(event) =>
                       update(row.key, { imageUrl: event.target.value })
                     }

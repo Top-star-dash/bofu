@@ -348,86 +348,102 @@ export default function ConsultantManager({
                   {expanded === row.id && (
                     <tr className="detail-row">
                       <td colSpan={8}>
-                        <div className="admin-field-row">
-                          <label>
-                            职衔
-                            <input
-                              value={row.title}
-                              onChange={(event) =>
-                                update(row.id, { title: event.target.value })
+                        <div className="consultant-detail">
+                          <div className="consultant-detail-grid">
+                            <label>
+                              职衔
+                              <input
+                                value={row.title}
+                                maxLength={32}
+                                placeholder="如：置业顾问"
+                                onChange={(event) =>
+                                  update(row.id, { title: event.target.value })
+                                }
+                              />
+                            </label>
+                            <label>
+                              工号
+                              <input
+                                value={row.employeeNo}
+                                maxLength={32}
+                                placeholder="选填，如：A012"
+                                onChange={(event) =>
+                                  update(row.id, { employeeNo: event.target.value })
+                                }
+                              />
+                            </label>
+                            <label className="span-full">
+                              顾问本人 OpenID（用于过滤销售自点）
+                              <input
+                                value={row.openid}
+                                maxLength={64}
+                                placeholder="选填，顾问微信 OpenID"
+                                onChange={(event) =>
+                                  update(row.id, { openid: event.target.value })
+                                }
+                              />
+                            </label>
+                          </div>
+                          <div className="consultant-detail-images">
+                            <ImageField
+                              label="顾问头像"
+                              value={row.avatarUrl}
+                              onChange={(value) =>
+                                update(row.id, { avatarUrl: value })
                               }
+                              hint="头像地址，或点击上传"
                             />
-                          </label>
-                          <label>
-                            工号
-                            <input
-                              value={row.employeeNo}
-                              onChange={(event) =>
-                                update(row.id, { employeeNo: event.target.value })
+                            <ImageField
+                              label="微信二维码（客户加微信用）"
+                              value={row.qrcodeUrl}
+                              onChange={(value) =>
+                                update(row.id, { qrcodeUrl: value })
                               }
+                              hint="微信二维码图片，或点击上传"
                             />
-                          </label>
-                          <label>
-                            顾问本人 OpenID（过滤自点）
-                            <input
-                              value={row.openid}
-                              onChange={(event) =>
-                                update(row.id, { openid: event.target.value })
-                              }
-                            />
-                          </label>
-                        </div>
-                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                          <ImageField
-                            label="顾问头像"
-                            value={row.avatarUrl}
-                            onChange={(value) =>
-                              update(row.id, { avatarUrl: value })
-                            }
-                            hint="头像地址，或点击上传"
-                          />
-                          <ImageField
-                            label="微信二维码（客户加微信用）"
-                            value={row.qrcodeUrl}
-                            onChange={(value) =>
-                              update(row.id, { qrcodeUrl: value })
-                            }
-                            hint="微信二维码图片，或点击上传"
-                          />
-                        </div>
-                        <label className="stacked">
-                          介绍
-                          <input
-                            value={row.intro}
-                            onChange={(event) =>
-                              update(row.id, { intro: event.target.value })
-                            }
-                          />
-                        </label>
-                        <label className="stacked">
-                          留言
-                          <input
-                            value={row.message}
-                            onChange={(event) =>
-                              update(row.id, { message: event.target.value })
-                            }
-                          />
-                        </label>
-                        <div className="admin-actions" style={{ marginTop: 10 }}>
-                          <button
-                            type="button"
-                            className="admin-btn"
-                            onClick={() => save(row)}
-                          >
-                            保存详情
-                          </button>
-                          <button
-                            type="button"
-                            className="admin-btn secondary"
-                            onClick={() => remove(row)}
-                          >
-                            删除顾问
-                          </button>
+                          </div>
+                          <div className="consultant-detail-text">
+                            <label>
+                              介绍
+                              <textarea
+                                value={row.intro}
+                                maxLength={500}
+                                rows={3}
+                                placeholder="展示在顾问弹窗的自我介绍"
+                                onChange={(event) =>
+                                  update(row.id, { intro: event.target.value })
+                                }
+                              />
+                            </label>
+                            <label>
+                              留言
+                              <textarea
+                                value={row.message}
+                                maxLength={500}
+                                rows={3}
+                                placeholder="展示在顾问弹窗的留言"
+                                onChange={(event) =>
+                                  update(row.id, { message: event.target.value })
+                                }
+                              />
+                            </label>
+                          </div>
+                          <div className="admin-actions">
+                            <button
+                              type="button"
+                              className="admin-btn"
+                              onClick={() => save(row)}
+                            >
+                              保存详情
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-btn secondary"
+                              onClick={() => remove(row)}
+                            >
+                              删除顾问
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>

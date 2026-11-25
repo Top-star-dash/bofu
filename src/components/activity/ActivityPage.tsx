@@ -141,7 +141,6 @@ export default function ActivityPage({
 
   useEffect(() => {
     if (!modal) return;
-    if (modal === "prizes") setPrizeTab("PENDING");
     const frame = window.requestAnimationFrame(() => {
       const dialog = dialogRef.current;
       if (dialog && !dialog.open) dialog.showModal();
@@ -185,9 +184,16 @@ export default function ActivityPage({
   }
 
   /** 未授权可浏览；抽奖/留资/看奖品需身份 */
+  function openPrizes() {
+    // 每次打开都回到「待核销」，避免停留在上次的状态 Tab
+    setPrizeTab("PENDING");
+    setModal("prizes");
+  }
+
   function requireAuth(next?: Exclude<ModalKind, "auth" | null>) {
     if (customer) {
-      if (next) setModal(next);
+      if (next === "prizes") openPrizes();
+      else if (next) setModal(next);
       return true;
     }
     setModal("auth");
@@ -421,17 +427,21 @@ export default function ActivityPage({
     (item) => item.name.trim() && safeHttpUrl(item.url),
   );
   const externalUrl = safeHttpUrl(activity.externalUrl);
-  const logoUrl = safeMediaUrl(activity.logoUrl) || "/activity/logo-future.png";
+  const logoUrl = safeMediaUrl(activity.logoUrl) || "/activity/logo-future.webp";
   const logoSubUrl =
-    safeMediaUrl(activity.logoSubUrl) || "/activity/logo-fumei-big.png";
+    safeMediaUrl(activity.logoSubUrl) || "/activity/logo-fumei-big.webp";
   const wheelUrl =
-    safeMediaUrl(activity.wheelImageUrl) || "/activity/大圆盘2.png";
-  const posterUrl = safeMediaUrl(activity.posterUrl) || "/activity/kv-popup.jpg";
+    safeMediaUrl(activity.wheelImageUrl) || "/activity/大圆盘2.webp";
+  const posterUrl = safeMediaUrl(activity.posterUrl) || "/activity/kv-popup.webp";
+  const backgroundUrl = safeMediaUrl(activity.backgroundUrl);
   const shareTitle =
     activity.shareTitle ||
     activity.title.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  // 微信分享封面不保证支持 WebP，继续使用原始 jpg/png
   const shareCover =
-    safeMediaUrl(activity.shareCoverUrl) || posterUrl;
+    safeMediaUrl(activity.shareCoverUrl, { webp: false }) ||
+    safeMediaUrl(activity.posterUrl, { webp: false }) ||
+    "/activity/kv-popup.jpg";
   // 公告放大成主标题后，副标题若与公告文案重复就隐藏，避免同一句话出现两次
   const subtitleText = activity.subtitle
     ? activity.subtitle.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()
@@ -458,8 +468,8 @@ export default function ActivityPage({
       <div
         className="page-background"
         style={
-          activity.backgroundUrl
-            ? { backgroundImage: `url('${activity.backgroundUrl}')` }
+          backgroundUrl
+            ? { backgroundImage: `url('${backgroundUrl}')` }
             : undefined
         }
         aria-hidden="true"
@@ -616,7 +626,7 @@ export default function ActivityPage({
           {firstPrize && (
             <article className="first-prize">
               <img
-                src={firstPrize.imageUrl || "/activity/prize-1.jpg"}
+                src={safeMediaUrl(firstPrize.imageUrl) || "/activity/prize-1.webp"}
                 alt={firstPrize.name}
               />
               <div>
@@ -632,7 +642,7 @@ export default function ActivityPage({
             {otherPrizes.map((prize) => (
               <article key={prize.id}>
                 <img
-                  src={prize.imageUrl || "/activity/prize-2.jpg"}
+                  src={safeMediaUrl(prize.imageUrl) || "/activity/prize-2.webp"}
                   alt={prize.name}
                 />
                 <h2 className="prize-level">{prize.level}</h2>
@@ -718,13 +728,13 @@ export default function ActivityPage({
                       title="点击放大预览"
                       onClick={() =>
                         setImagePreview({
-                          src: asset.imageUrl,
+                          src: safeMediaUrl(asset.imageUrl) || "",
                           title: asset.title || "项目亮点",
                         })
                       }
                     >
                       <img
-                        src={asset.imageUrl}
+                        src={safeMediaUrl(asset.imageUrl) || ""}
                         alt={asset.title || "项目亮点"}
                         loading="lazy"
                       />
@@ -756,13 +766,13 @@ export default function ActivityPage({
                 title="点击放大预览"
                 onClick={() =>
                   setImagePreview({
-                    src: asset.imageUrl,
+                    src: safeMediaUrl(asset.imageUrl) || "",
                     title: asset.title || "楼盘图片",
                   })
                 }
               >
                 <img
-                  src={asset.imageUrl}
+                  src={safeMediaUrl(asset.imageUrl) || ""}
                   alt={asset.title || "楼盘图片"}
                   loading="lazy"
                 />
@@ -1155,7 +1165,7 @@ export default function ActivityPage({
                 <button
                   type="button"
                   className="submit-button"
-                  onClick={() => setModal("prizes")}
+                  onClick={openPrizes}
                 >
                   查看我的奖品
                 </button>

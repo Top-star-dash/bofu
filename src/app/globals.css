@@ -62,7 +62,7 @@ button {
   height: 100%;
   /* 必须用分开写法：内联 backgroundImage 不会冲掉 size/position */
   background-color: #e85c32;
-  background-image: url("/activity/kv-bg.png");
+  background-image: url("/activity/kv-bg.webp");
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -1443,6 +1443,101 @@ button {
   align-items: center;
   gap: 8px;
   font-weight: 500;
+}
+
+/* 顾问列表行内编辑：默认无边框，悬浮/聚焦时显示输入态 */
+.admin-inline-input {
+  width: 100%;
+  min-width: 84px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-inline-input:hover {
+  border-color: #e4c69f;
+  background: #fffaf3;
+}
+
+.admin-inline-input:focus {
+  outline: none;
+  border-color: #b83224;
+  background: white;
+  box-shadow: 0 0 0 3px #b832241a;
+}
+
+/* 顾问详情展开区 */
+.detail-row > td {
+  padding: 14px 12px 18px;
+  background: #fffaf3;
+}
+
+.consultant-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #f0e2d2;
+  border-radius: 12px;
+  background: #fffdf9;
+}
+
+.consultant-detail-grid,
+.consultant-detail-images,
+.consultant-detail-text {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.consultant-detail-grid .span-full {
+  grid-column: 1 / -1;
+}
+
+.consultant-detail label {
+  display: grid;
+  gap: 6px;
+  color: #5a241a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.consultant-detail input,
+.consultant-detail textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #e4c69f;
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.consultant-detail input:focus,
+.consultant-detail textarea:focus {
+  outline: none;
+  border-color: #b83224;
+  box-shadow: 0 0 0 3px #b832241a;
+}
+
+.consultant-detail textarea {
+  min-height: 74px;
+  resize: vertical;
+}
+
+@media (max-width: 900px) {
+  .consultant-detail-grid,
+  .consultant-detail-images,
+  .consultant-detail-text {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-actions {

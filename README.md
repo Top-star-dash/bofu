@@ -111,7 +111,14 @@ npm run build          # prisma generate && next build
 npm run lint
 npm run db:seed
 npx prisma migrate deploy
+npm run images:webp    # 把 public 下 jpg/png 批量转同名 webp（不删原图）
 ```
+
+## 图片优化
+
+- 后台 `/api/admin/upload` 上传的 jpg/png 统一输出 WebP（GIF 动图保留原格式），最长边 1600px、质量 80。
+- 历史素材可执行 `npm run images:webp` 批量生成同名 `.webp`；代码会把 `/property`、`/activity`、`/uploads` 下的 jpg/png 自动指向同名 webp，数据库无需改字段。
+- 原图保留作备份；确认不再需要后可自行清理，不影响站内引用。
 
 ## 部署（SFTP → RX）
 
