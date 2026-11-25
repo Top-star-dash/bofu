@@ -440,9 +440,11 @@ button {
 }
 
 .rich-rule h2 {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   color: var(--gold);
-  font-size: 20px;
+  font-size: 24px;
+  font-weight: 800;
+  text-align: center;
 }
 
 .rich-rule p,
@@ -454,7 +456,8 @@ button {
 }
 
 .rich-rule button {
-  margin-top: 10px;
+  display: block;
+  margin: 10px auto 0;
   padding: 0;
   border: 0;
   color: var(--gold);
@@ -565,17 +568,22 @@ button {
   background: #fff2db;
 }
 
+.section-heading {
+  text-align: center;
+}
+
 .section-heading span {
+  display: block;
   color: var(--red);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: .15em;
 }
 
 .section-heading h2 {
-  margin: 7px 0 18px;
+  margin: 8px 0 18px;
   color: var(--ink);
-  font: 700 28px/1.15 Georgia, "Songti SC", serif;
+  font: 800 32px/1.18 Georgia, "Songti SC", serif;
 }
 
 .first-prize {

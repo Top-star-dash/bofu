@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { ActivityStatus } from "@/generated/prisma/enums";
-import { resolveMapLinks } from "@/lib/urls";
+import { normalizeMediaUrl, resolveMapLinks } from "@/lib/urls";
 
 export function resolveActivityStatus(
   startAt: Date,
@@ -132,7 +132,7 @@ export function serializeActivityForClient(
       id: prize.id,
       level: prize.level,
       name: prize.name,
-      imageUrl: prize.imageUrl,
+      imageUrl: normalizeMediaUrl(prize.imageUrl) ?? prize.imageUrl,
       stock: prize.stock,
       remainStock: prize.remainStock,
       description: prize.description,
@@ -141,13 +141,13 @@ export function serializeActivityForClient(
       id: asset.id,
       title: asset.title,
       subtitle: asset.subtitle,
-      imageUrl: asset.imageUrl,
+      imageUrl: normalizeMediaUrl(asset.imageUrl) ?? asset.imageUrl,
     })),
     highlightAssets: highlightAssets.map((asset) => ({
       id: asset.id,
       title: asset.title,
       subtitle: asset.subtitle,
-      imageUrl: asset.imageUrl,
+      imageUrl: normalizeMediaUrl(asset.imageUrl) ?? asset.imageUrl,
     })),
     consultant: consultant
       ? {

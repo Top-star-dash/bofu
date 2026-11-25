@@ -7,6 +7,7 @@ import { canUse } from "@/lib/admin-guard";
 import { getCurrentActivity } from "@/lib/activity";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { normalizeMediaUrl } from "@/lib/urls";
 
 export default async function AdminPrizesPage() {
   const session = await getAdminSession();
@@ -29,7 +30,7 @@ export default async function AdminPrizesPage() {
     id: prize.id,
     level: prize.level,
     name: prize.name,
-    imageUrl: prize.imageUrl ?? "",
+    imageUrl: normalizeMediaUrl(prize.imageUrl) ?? "",
     stock: prize.stock,
     remainStock: prize.remainStock,
     probability: Number(prize.probability.toString()),

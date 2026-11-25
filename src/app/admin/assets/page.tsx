@@ -7,6 +7,7 @@ import { canUse } from "@/lib/admin-guard";
 import { getCurrentActivity } from "@/lib/activity";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { normalizeMediaUrl } from "@/lib/urls";
 
 export default async function AdminAssetsPage() {
   const session = await getAdminSession();
@@ -29,7 +30,7 @@ export default async function AdminAssetsPage() {
     type: asset.type === "highlight" ? "highlight" : "property",
     title: asset.title ?? "",
     subtitle: asset.subtitle ?? "",
-    imageUrl: asset.imageUrl,
+    imageUrl: normalizeMediaUrl(asset.imageUrl) ?? "",
     linkUrl: asset.linkUrl ?? "",
     sortOrder: asset.sortOrder,
     enabled: asset.enabled,

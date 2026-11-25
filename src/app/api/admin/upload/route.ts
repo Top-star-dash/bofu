@@ -70,7 +70,8 @@ export async function POST(request: Request) {
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, filename), output);
 
-  const url = `/uploads/${folder}/${filename}`;
+  // 走动态媒体路由，避免 next start 对运行时新增 public 文件的 404 缓存
+  const url = `/api/media/uploads/${folder}/${filename}`;
   return NextResponse.json({
     ok: true,
     url: safeMediaUrl(url),

@@ -3,6 +3,7 @@ import { getCurrentActivity } from "@/lib/activity";
 import { getCustomerSession } from "@/lib/customer-session";
 import { drawPrize } from "@/lib/draw";
 import { prisma } from "@/lib/db";
+import { normalizeMediaUrl } from "@/lib/urls";
 
 export async function POST() {
   const session = await getCustomerSession();
@@ -55,7 +56,7 @@ export async function POST() {
         prizeName: record.prizeName,
         prizeLevel: record.prizeLevel,
         isWin: record.isWin,
-        imageUrl: prize.imageUrl,
+        imageUrl: normalizeMediaUrl(prize.imageUrl) ?? prize.imageUrl,
         redeemCode: record.redeemCode,
         redeemStatus: record.redeemStatus,
       },

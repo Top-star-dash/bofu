@@ -23,6 +23,19 @@ export function safeMediaUrl(value: string | null | undefined): string | null {
   return safeHttpUrl(text);
 }
 
+/**
+ * 归一化站内上传图片地址：旧 `/uploads/YYYYMM/xxx` 在 next start 下会被
+ * 预渲染的 404 缓存遮蔽，统一改走动态媒体路由 `/api/media/uploads/...`。
+ */
+export function normalizeMediaUrl(
+  value: string | null | undefined,
+): string | null {
+  const safe = safeMediaUrl(value);
+  if (!safe) return null;
+  if (safe.startsWith("/uploads/")) return `/api/media${safe}`;
+  return safe;
+}
+
 export type MapLinkItem = { name: string; url: string };
 
 const MAP_LINK_MAX = 5;
