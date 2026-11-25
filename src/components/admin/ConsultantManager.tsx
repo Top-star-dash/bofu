@@ -34,6 +34,8 @@ export default function ConsultantManager({
   const [tab, setTab] = useState<"list" | "create" | "import">("list");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importIssues, setImportIssues] = useState<string[]>([]);
 
   function update(id: string, patch: Partial<ConsultantRow>) {
     setRows((prev) =>
@@ -158,6 +160,47 @@ export default function ConsultantManager({
     setMessage(`导入完成：新增 ${data.created} 条，跳过 ${data.skipped} 条重复分享码`);
     event.currentTarget.reset();
     router.refresh();
+  }
+
+  async function importExcel(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formEl = event.currentTarget;
+    const form = new FormData(formEl);
+    const file = form.get("file");
+    if (!(file instanceof File) || !file.size) {
+      setError("请选择要导入的 .xlsx 文件");
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    setImportIssues([]);
+    setImporting(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const response = await fetch("/api/admin/consultants/import", {
+        method: "POST",
+        body,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data.message || "导入失败");
+        setImportIssues(Array.isArray(data.errors) ? data.errors : []);
+        return;
+      }
+      const issues: string[] = Array.isArray(data.errors) ? data.errors : [];
+      setMessage(
+        `导入完成：新增 ${data.created} 条，跳过 ${data.skipped} 条（重复分享码/手机号或格式问题）`,
+      );
+      setImportIssues(issues);
+      formEl.reset();
+      router.refresh();
+    } catch {
+      setError("网络异常，请稍后重试");
+    } finally {
+      setImporting(false);
+    }
   }
 
   function copyLink(code: string) {
@@ -435,7 +478,26 @@ export default function ConsultantManager({
       <div className="admin-card max-w-xl">
         <h3 style={{ marginTop: 0 }}>批量导入</h3>
           <p className="redeem-hint">
-            每行一条，格式：姓名,电话,分享码,团队（团队可省略）。分享码重复的行会自动跳过。
+            上传 Excel（.xlsx）：表头需包含「姓名」「手机号码」，可选「所属团队」「职衔」「工号」「分享码」。未填分享码时按手机号后 8 位自动生成。
+          </p>
+          <form className="admin-form" onSubmit={importExcel}>
+            <label>
+              Excel 文件
+              <input type="file" name="file" accept=".xlsx" required />
+            </label>
+            <button type="submit" disabled={importing}>
+              {importing ? "导入中…" : "上传并导入"}
+            </button>
+          </form>
+          {importIssues.length ? (
+            <ul className="redeem-hint">
+              {importIssues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="redeem-hint">
+            或粘贴数据：每行一条，格式：姓名,电话,分享码,团队（团队可省略）。分享码或手机号重复的行会自动跳过。
           </p>
           <form className="admin-form" onSubmit={importRows}>
             <label>
