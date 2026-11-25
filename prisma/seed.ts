@@ -76,7 +76,7 @@ async function main() {
   if (!activity) {
     activity = await prisma.activity.create({
       data: {
-        title: "博富·福美城超级好礼全城派",
+        title: "博富·福美城<br />超级好礼全城派",
         subtitle: "幸运抽奖 100%中奖",
         status: "RUNNING",
         startAt: new Date("2026-11-23T09:00:00+08:00"),

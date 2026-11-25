@@ -197,7 +197,9 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
   const tel = `tel:${activity.phone.replace(/-/g, "")}`;
 
   return (
+    // 内容区域
     <main className="activity-page">
+      {/* 背景图片 */}
       <div
         className="page-background"
         style={
@@ -207,7 +209,7 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
         }
         aria-hidden="true"
       />
-
+      {/* 顶部区域：存放 logo，功能按钮 */}
       <header className="page-top">
         <div className="brand-area">
           <div className="logo-line">
@@ -224,9 +226,10 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
           </div>
         </div>
       </header>
-
+      {/* 内容滚动区域 */}
       <div className="page-scroll">
       <section className="main-content" aria-labelledby="activity-title">
+        {/* 活动公告 */}
         {activity.notices.length > 0 && (
           <div className="notice" aria-live="polite">
             <span>活动公告</span>
@@ -244,31 +247,30 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
             </div>
           </div>
         )}
-
+        {/* 活动标题 */}
         <div className="activity-title">
-          <h1 id="activity-title">
-            {activity.title.split("超级").map((part, index) =>
-              index === 0 ? (
-                <span key={part}>
-                  {part}
-                  <br />
-                </span>
-              ) : (
-                <span key={part}>超级{part}</span>
-              ),
-            )}
-          </h1>
-          <p>{activity.subtitle}</p>
+          <h1
+            id="activity-title"
+            dangerouslySetInnerHTML={{ __html: activity.title }}
+          />
+          {activity.subtitle ? (
+            <div
+              className="activity-subtitle"
+              dangerouslySetInnerHTML={{ __html: activity.subtitle }}
+            />
+          ) : null}
+          {/* 活动开始时间 */}
           {activity.status !== "ENDED" && (
             <small>{formatRange(activity.startAt, activity.endAt)}</small>
           )}
+          {/* 活动状态 */}
           {activity.status !== "RUNNING" && (
             <em className="status-tip">
               {activity.status === "NOT_STARTED" ? "活动未开始" : "活动已结束"}
             </em>
           )}
         </div>
-
+        {/* 抽奖区域 */}
         <div className="draw-area" id="draw-area">
           <button
             className="image-draw"
@@ -278,13 +280,16 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
             disabled={drawing}
           >
             <span className="wheel-plate">
+              {/* 转盘图片 */}
               <img
                 src={activity.wheelImageUrl || "/activity/大圆盘2.png"}
                 alt="点击转盘抽奖"
               />
             </span>
           </button>
+          {/* 抽奖信息 */}
           <div className="draw-info">
+            {/* 活动进行中：显示剩余抽奖次数 */}
             {activity.status === "RUNNING" ? (
               <strong>当前剩余抽奖次数：{customer?.drawChance ?? 0} 次</strong>
             ) : (
@@ -588,7 +593,10 @@ export default function ActivityPage({ shareCode, inviterId }: Props) {
             {modal === "rules" && (
               <>
                 <span>详细规则</span>
-                <h2 id="modal-title">{activity.title}</h2>
+                <h2
+                  id="modal-title"
+                  dangerouslySetInnerHTML={{ __html: activity.title }}
+                />
                 <ol>
                   <li>每位客户首次进入并完成留资后免费抽奖 1 次。</li>
                   <li>每邀请 1 位好友完成有效留资，增加 1 次机会，最多 3 次。</li>

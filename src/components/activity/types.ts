@@ -1,6 +1,8 @@
 export type ActivityClient = {
   id: string;
+  /** 后台富文本，可含换行等 HTML */
   title: string;
+  /** 后台富文本 */
   subtitle: string | null;
   status: string;
   startAt: string;

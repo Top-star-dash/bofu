@@ -52,7 +52,7 @@ export default async function AdminHomePage() {
         <h3 style={{ marginTop: 0 }}>当前活动</h3>
         {activity ? (
           <p>
-            {activity.title}
+            <span dangerouslySetInnerHTML={{ __html: activity.title }} />
             <br />
             状态：{activity.runtimeStatus}
             <br />

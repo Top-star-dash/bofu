@@ -249,11 +249,24 @@ button {
   text-shadow: 2px 3px #ad2418;
 }
 
-.activity-title p {
+.activity-title h1 p {
+  margin: 0;
+}
+
+.activity-title h1 br {
+  display: block;
+  content: "";
+}
+
+.activity-subtitle {
   margin: 8px 0 10px;
   color: var(--gold);
   font-size: 21px;
   font-weight: 800;
+}
+
+.activity-subtitle p {
+  margin: 0;
 }
 
 .activity-title small {
