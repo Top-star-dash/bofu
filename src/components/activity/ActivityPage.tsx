@@ -380,17 +380,6 @@ export default function ActivityPage({
     activity.title.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   const shareCover =
     safeMediaUrl(activity.shareCoverUrl) || posterUrl;
-  const drawHint =
-    activity.status !== "RUNNING"
-      ? ""
-      : !customer
-        ? "点击转盘，先完成微信授权"
-        : !customer.hasLead
-          ? "点击转盘，留资后即可抽奖"
-          : customer.drawChance > 0
-            ? "点击转盘，立即抽奖"
-            : "次数已用完，邀请好友再得机会";
-
   // 公告放大成主标题后，副标题若与公告文案重复就隐藏，避免同一句话出现两次
   const subtitleText = activity.subtitle
     ? activity.subtitle.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()
@@ -495,12 +484,12 @@ export default function ActivityPage({
                 {/* 转盘图片 */}
                 <img src={wheelUrl} alt="点击转盘抽奖" />
               </span>
+              {/* 固定文案，叠在转盘约 25° 方位 */}
+              <span className="draw-hint" aria-hidden="true">
+                点击抽奖
+              </span>
             </span>
           </button>
-          {/* C.4.1 可见的抽奖引导，不再只靠 aria-label */}
-          {(drawHint || activity.status === "RUNNING") && (
-            <p className="draw-hint">{drawHint || "点击转盘抽奖"}</p>
-          )}
           {/* 抽奖信息 */}
           <div className="draw-info">
             {/* 活动进行中：显示剩余抽奖次数 */}

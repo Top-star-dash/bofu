@@ -434,12 +434,24 @@ button {
   text-decoration: underline;
 }
 
-/* C.4.1 转盘下方可见提示 */
+/* 转盘提示：相对轮盘中心落在约 25°（自 12 点顺时针），文字保持正向 */
 .draw-hint {
-  margin: 0 0 8px;
-  color: #ffe7bc;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #7a1a12;
+  background: #ffe7bc;
+  box-shadow: 0 2px 6px #7a1f1440;
   font-size: 12px;
-  letter-spacing: 0.06em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(25deg) translateY(-38%) rotate(-25deg);
 }
 
 .rich-rule {
