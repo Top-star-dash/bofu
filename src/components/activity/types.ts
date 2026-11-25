@@ -11,6 +11,7 @@ export type ActivityClient = {
   phone: string;
   address: string;
   mapUrl: string | null;
+  mapLinks: Array<{ name: string; url: string }>;
   externalUrl: string | null;
   shareTitle: string | null;
   shareDesc: string | null;
@@ -87,4 +88,5 @@ export type ModalKind =
   | "prizes"
   | "help"
   | "consultant"
+  | "maps"
   | null;

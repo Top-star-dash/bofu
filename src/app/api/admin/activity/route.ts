@@ -40,6 +40,26 @@ const schema = z.object({
   phone: z.string().trim().max(32).optional(),
   address: z.string().trim().max(200).optional(),
   mapUrl: optionalUrl,
+  mapLinks: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(20),
+        url: z.string().trim().min(1).max(500),
+      }),
+    )
+    .max(5)
+    .optional()
+    .transform((list) => {
+      if (list === undefined) return undefined;
+      const cleaned: Array<{ name: string; url: string }> = [];
+      for (const item of list) {
+        const url = safeHttpUrl(item.url);
+        if (!url) continue;
+        cleaned.push({ name: item.name, url });
+        if (cleaned.length >= 5) break;
+      }
+      return cleaned;
+    }),
   externalUrl: optionalUrl,
   shareTitle: z.string().trim().max(200).optional().nullable(),
   shareDesc: z.string().trim().max(300).optional().nullable(),

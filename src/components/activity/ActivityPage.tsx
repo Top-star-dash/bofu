@@ -368,7 +368,9 @@ export default function ActivityPage({
   const firstPrize = activity.prizes[0];
   const otherPrizes = activity.prizes.slice(1);
   const tel = `tel:${activity.phone.replace(/-/g, "")}`;
-  const mapUrl = safeHttpUrl(activity.mapUrl);
+  const mapLinks = (activity.mapLinks || []).filter(
+    (item) => item.name.trim() && safeHttpUrl(item.url),
+  );
   const externalUrl = safeHttpUrl(activity.externalUrl);
   const logoUrl = safeMediaUrl(activity.logoUrl) || "/activity/logo-future.png";
   const logoSubUrl =
@@ -405,7 +407,7 @@ export default function ActivityPage({
   return (
     // 内容区域
     <main className="activity-page">
-      {inWechat && shareUrl ? (
+      {inWechat && activity ? (
         <WechatShare
           enabled
           link={shareUrl}
@@ -465,16 +467,6 @@ export default function ActivityPage({
         )}
         {/* 活动标题 */}
         <div className="activity-title">
-          <h1
-            id="activity-title"
-            dangerouslySetInnerHTML={{ __html: activity.title }}
-          />
-          {showSubtitle ? (
-            <div
-              className="activity-subtitle"
-              dangerouslySetInnerHTML={{ __html: activity.subtitle || "" }}
-            />
-          ) : null}
           {/* 活动开始时间 */}
           {activity.status !== "ENDED" && (
             <small>{formatRange(activity.startAt, activity.endAt)}</small>
@@ -505,7 +497,7 @@ export default function ActivityPage({
             </span>
           </button>
           {/* C.4.1 可见的抽奖引导，不再只靠 aria-label */}
-          {drawHint ? <p className="draw-hint">{drawHint}</p> : null}
+          {/* {drawHint ? <p className="draw-hint">{drawHint}</p> : null} */}
           {/* 抽奖信息 */}
           <div className="draw-info">
             {/* 活动进行中：显示剩余抽奖次数 */}
@@ -614,17 +606,8 @@ export default function ActivityPage({
               <em>点击拨打</em>
             </div>
           </a>
-          {/* C.1：没有配置合法地图链接时不再链到假锚点 #map */}
-          {mapUrl ? (
-            <a href={mapUrl} target="_blank" rel="noreferrer">
-              <span>⌖</span>
-              <div>
-                <small>领奖地址</small>
-                <strong>{activity.address}</strong>
-                <em>打开地图导航</em>
-              </div>
-            </a>
-          ) : (
+          {/* 0 条静态；1 条直跳；≥2 条弹窗选择 */}
+          {mapLinks.length === 0 ? (
             <div className="contact-static">
               <span>⌖</span>
               <div>
@@ -633,6 +616,28 @@ export default function ActivityPage({
                 <em>导航请咨询专属顾问</em>
               </div>
             </div>
+          ) : mapLinks.length === 1 ? (
+            <a href={mapLinks[0].url} target="_blank" rel="noreferrer">
+              <span>⌖</span>
+              <div>
+                <small>领奖地址</small>
+                <strong>{activity.address}</strong>
+                <em>{mapLinks[0].name}</em>
+              </div>
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="contact-map-trigger"
+              onClick={() => setModal("maps")}
+            >
+              <span>⌖</span>
+              <div>
+                <small>领奖地址</small>
+                <strong>{activity.address}</strong>
+                <em>选择地图导航</em>
+              </div>
+            </button>
           )}
         </section>
 
@@ -891,6 +896,33 @@ export default function ActivityPage({
                   onClick={() => (customer ? setModal(null) : setModal("auth"))}
                 >
                   {customer ? "我知道了" : "去授权"}
+                </button>
+              </>
+            )}
+
+            {modal === "maps" && (
+              <>
+                <span>领奖地址</span>
+                <h2 id="modal-title">选择地图导航</h2>
+                <p>{activity.address}</p>
+                <div className="map-link-list">
+                  {mapLinks.map((item) => (
+                    <a
+                      key={`${item.name}-${item.url}`}
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {item.name}
+                    </a>
+                  ))}
+                </div>
+                <button
+                  className="submit-button"
+                  type="button"
+                  onClick={() => setModal(null)}
+                >
+                  关闭
                 </button>
               </>
             )}

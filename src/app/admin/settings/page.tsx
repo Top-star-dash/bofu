@@ -7,6 +7,7 @@ import { canUse } from "@/lib/admin-guard";
 import { getCurrentActivity } from "@/lib/activity";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { resolveMapLinks } from "@/lib/urls";
 
 export default async function AdminSettingsPage() {
   const session = await getAdminSession();
@@ -41,7 +42,7 @@ export default async function AdminSettingsPage() {
                 redeemDeadline: activity.redeemDeadline.toISOString(),
                 phone: activity.phone,
                 address: activity.address,
-                mapUrl: activity.mapUrl ?? "",
+                mapLinks: resolveMapLinks(activity.mapLinks, activity.mapUrl),
                 externalUrl: activity.externalUrl ?? "",
                 shareTitle: activity.shareTitle ?? "",
                 shareDesc: activity.shareDesc ?? "",

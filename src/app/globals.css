@@ -1717,45 +1717,82 @@ button {
 }
 
 /* ===== H5 增补：地图占位 / 亮点 / 助力链接 / 现场核销 ===== */
-.contact-row .contact-static {
+.contact-row .contact-static,
+.contact-row .contact-map-trigger {
   display: flex;
   align-items: center;
   gap: 10px;
   flex: 1;
-  padding: 10px 6px;
-  border-radius: 12px;
-  background: #fffaf3;
+  min-width: 0;
+  padding: 14px 10px;
+  border-radius: 8px;
+  background: #fffdf6;
+  border: 1px solid #f0c77c;
   text-align: left;
 }
 
-.contact-row .contact-static>span {
+.contact-row .contact-map-trigger {
+  width: 100%;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.contact-row .contact-static>span,
+.contact-row .contact-map-trigger>span {
   display: grid;
   place-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  color: white;
-  background: #e6a86a;
+  color: var(--red);
+  background: #ffe6b8;
   font-size: 18px;
 }
 
 .contact-row .contact-static small,
 .contact-row .contact-static strong,
-.contact-row .contact-static em {
+.contact-row .contact-static em,
+.contact-row .contact-map-trigger small,
+.contact-row .contact-map-trigger strong,
+.contact-row .contact-map-trigger em {
   display: block;
 }
 
 .contact-row .contact-static small,
-.contact-row .contact-static em {
-  color: #9b7d64;
-  font-size: 11px;
+.contact-row .contact-static em,
+.contact-row .contact-map-trigger small,
+.contact-row .contact-map-trigger em {
+  color: var(--muted);
+  font-size: 10px;
   font-style: normal;
 }
 
-.contact-row .contact-static strong {
-  color: #6b2b23;
-  font-size: 13px;
+.contact-row .contact-static strong,
+.contact-row .contact-map-trigger strong {
+  margin: 3px 0;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.map-link-list {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+
+.map-link-list a {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #f0c77c;
+  background: #fffaf3;
+  color: #8f281f;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
 }
 
 .online-entry {

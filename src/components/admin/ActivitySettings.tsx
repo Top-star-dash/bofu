@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import ImageField from "./ImageField";
 import NoticeManager from "./NoticeManager";
 
+export type MapLinkFormItem = { name: string; url: string };
+
 export type ActivityFormData = {
   id: string;
   title: string;
@@ -15,7 +17,7 @@ export type ActivityFormData = {
   redeemDeadline: string;
   phone: string;
   address: string;
-  mapUrl: string;
+  mapLinks: MapLinkFormItem[];
   externalUrl: string;
   shareTitle: string;
   shareDesc: string;
@@ -117,11 +119,19 @@ export default function ActivitySettings({
     setError("");
     setMessage("");
     try {
+      const mapLinks = form.mapLinks
+        .map((item) => ({
+          name: item.name.trim(),
+          url: item.url.trim(),
+        }))
+        .filter((item) => item.name && item.url)
+        .slice(0, 5);
       const response = await fetch("/api/admin/activity", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          mapLinks,
           startAt: new Date(form.startAt).toISOString(),
           endAt: new Date(form.endAt).toISOString(),
           redeemDeadline: new Date(form.redeemDeadline).toISOString(),
@@ -241,14 +251,67 @@ export default function ActivitySettings({
                 </Field>
               </div>
               <div className="flex flex-col gap-3 md:col-span-2">
-                <Field label="地图导航链接（留空则 H5 显示「导航请咨询顾问」）">
-                  <input
-                    className={inputCls}
-                    value={form.mapUrl}
-                    onChange={(event) => set("mapUrl", event.target.value)}
-                    placeholder="https://uri.amap.com/..."
-                  />
-                </Field>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[12px] font-bold text-[#5a241a]">
+                    地图导航（可多条；留空则 H5 显示「导航请咨询顾问」）
+                  </span>
+                  {form.mapLinks.map((link, index) => (
+                    <div
+                      key={`map-${index}`}
+                      className="grid grid-cols-1 gap-2 rounded-lg border border-[#f0e2d2] bg-[#fffaf3] p-3 md:grid-cols-[140px_1fr_auto]"
+                    >
+                      <input
+                        className={inputCls}
+                        value={link.name}
+                        maxLength={20}
+                        placeholder={
+                          index === 0
+                            ? "高德地图"
+                            : index === 1
+                              ? "百度地图"
+                              : "腾讯地图"
+                        }
+                        onChange={(event) => {
+                          const next = [...form.mapLinks];
+                          next[index] = { ...next[index], name: event.target.value };
+                          set("mapLinks", next);
+                        }}
+                      />
+                      <input
+                        className={inputCls}
+                        value={link.url}
+                        placeholder="https://uri.amap.com/..."
+                        onChange={(event) => {
+                          const next = [...form.mapLinks];
+                          next[index] = { ...next[index], url: event.target.value };
+                          set("mapLinks", next);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="rounded-lg border border-[#e4c69f] px-3 py-2 text-[12px] font-bold text-[#8f281f] hover:bg-[#ffe6b8]"
+                        onClick={() =>
+                          set(
+                            "mapLinks",
+                            form.mapLinks.filter((_, i) => i !== index),
+                          )
+                        }
+                      >
+                        删除
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={form.mapLinks.length >= 5}
+                    className="w-fit rounded-lg bg-[#fff2df] px-3 py-2 text-[13px] font-bold text-[#8f281f] hover:bg-[#ffe6b8] disabled:opacity-50"
+                    onClick={() =>
+                      set("mapLinks", [...form.mapLinks, { name: "", url: "" }])
+                    }
+                  >
+                    添加地图
+                  </button>
+                </div>
                 <Field label="线上售楼部外链（留空则 H5 不显示入口）">
                   <input
                     className={inputCls}

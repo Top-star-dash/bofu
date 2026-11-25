@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { ActivityStatus } from "@/generated/prisma/enums";
+import { resolveMapLinks } from "@/lib/urls";
 
 export function resolveActivityStatus(
   startAt: Date,
@@ -107,6 +108,7 @@ export function serializeActivityForClient(
     phone: activity.phone,
     address: activity.address,
     mapUrl: activity.mapUrl,
+    mapLinks: resolveMapLinks(activity.mapLinks, activity.mapUrl),
     externalUrl: activity.externalUrl,
     shareTitle: activity.shareTitle,
     shareDesc: activity.shareDesc,

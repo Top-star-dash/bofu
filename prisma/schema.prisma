@@ -77,6 +77,8 @@ model Activity {
   phone           String         @default("0750-5236666")
   address         String         @default("博富·福美城冠军薈")
   mapUrl          String?
+  /** 多地图导航：[{ name, url }]，空则回落 mapUrl */
+  mapLinks        Json?
   /** 线上售楼部外链，空则前端不展示入口 */
   externalUrl     String?
   shareTitle      String?

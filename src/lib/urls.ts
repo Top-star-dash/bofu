@@ -22,3 +22,35 @@ export function safeMediaUrl(value: string | null | undefined): string | null {
   if (text.startsWith("/") && !text.startsWith("//")) return text;
   return safeHttpUrl(text);
 }
+
+export type MapLinkItem = { name: string; url: string };
+
+const MAP_LINK_MAX = 5;
+
+/** 解析活动地图导航列表；空列表时回落旧字段 mapUrl */
+export function resolveMapLinks(
+  raw: unknown,
+  fallbackUrl?: string | null,
+): MapLinkItem[] {
+  const items: MapLinkItem[] = [];
+  if (Array.isArray(raw)) {
+    for (const entry of raw) {
+      if (!entry || typeof entry !== "object") continue;
+      const name =
+        typeof (entry as { name?: unknown }).name === "string"
+          ? (entry as { name: string }).name.trim()
+          : "";
+      const url = safeHttpUrl(
+        typeof (entry as { url?: unknown }).url === "string"
+          ? (entry as { url: string }).url
+          : null,
+      );
+      if (!name || !url || name.length > 20) continue;
+      items.push({ name: name.slice(0, 20), url });
+      if (items.length >= MAP_LINK_MAX) break;
+    }
+  }
+  if (items.length > 0) return items;
+  const legacy = safeHttpUrl(fallbackUrl);
+  return legacy ? [{ name: "打开地图导航", url: legacy }] : [];
+}
