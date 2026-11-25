@@ -1,10 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 
-// 动态读盘：运行时新上传的文件不受 next start 的 public 静态清单/预渲染缓存影响
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// cacheComponents 下不允许 dynamic / runtime 段配置，改用 connection() 声明动态渲染：
+// 运行时新上传的文件不受 next start 的 public 静态清单/预渲染缓存影响
 
 const MIME: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -18,6 +17,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
+  // 等待真实请求，避免被 cacheComponents 预渲染成静态 404 缓存
+  await connection();
+
   const { path: segments } = await params;
   if (!segments?.length) {
     return new NextResponse("Not Found", { status: 404 });
