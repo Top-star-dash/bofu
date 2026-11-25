@@ -209,7 +209,7 @@ export default async function AdminStatsPage({
             )}
           </tbody>
         </table>
-        <p>
+        <p style={{ marginTop: 12 }}>
           <Link className="admin-btn secondary" href="/admin/prizes">
             去补充库存
           </Link>
