@@ -65,7 +65,7 @@ export default function AdminShell({
           </div>
           <LogoutButton />
         </div>
-        {children}
+        <div className="admin-content">{children}</div>
       </div>
     </div>
   );

@@ -790,7 +790,7 @@ button {
 .consult-float {
   position: absolute;
   z-index: 2;
-  left: 12px;
+  /* left: 12px; */
   /* C.5.1 上移到波浪之外：浪高 20px，留 2px 呼吸位 */
   bottom: calc(100% + 22px);
   display: flex;
@@ -798,7 +798,7 @@ button {
   gap: 6px;
   padding: 8px 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0 999px 999px 0;
   color: white;
   background: #ef6b42;
   box-shadow: 0 4px 12px #6b2b2333;
@@ -1066,6 +1066,7 @@ button {
     opacity: 0;
     transform: translateX(-16px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -1189,13 +1190,16 @@ button {
 .admin-shell {
   display: grid;
   grid-template-columns: 220px 1fr;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
 .admin-side {
   padding: 20px 14px;
   color: #ffe9d2;
   background: #8f281f;
+  overflow-y: auto;
 }
 
 .admin-side h1 {
@@ -1218,14 +1222,28 @@ button {
 }
 
 .admin-main {
-  padding: 20px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 20px 24px 0;
+  overflow: hidden;
 }
 
 .admin-top {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 18px;
+}
+
+.admin-content {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 40px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-card {
@@ -1329,6 +1347,7 @@ button {
 @media (max-width:900px) {
   .admin-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
 
   .admin-grid {
@@ -1354,6 +1373,7 @@ button {
     padding: 28px 24px 32px;
   }
 }
+
 /* ===== 转盘动效 ===== */
 .image-draw {
   position: relative;
@@ -1685,7 +1705,7 @@ button {
   text-align: left;
 }
 
-.contact-row .contact-static > span {
+.contact-row .contact-static>span {
   display: grid;
   place-items: center;
   flex: 0 0 40px;
