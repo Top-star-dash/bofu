@@ -64,14 +64,14 @@ export default async function AdminHomePage() {
       <div className="admin-card">
         <h3 style={{ marginTop: 0 }}>当前活动</h3>
         {activity ? (
-          <p>
-            <span dangerouslySetInnerHTML={{ __html: activity.title }} />
-            <br />
-            状态：{activity.runtimeStatus}
-            <br />
-            时间：{activity.startAt.toLocaleString("zh-CN")} ~{" "}
-            {activity.endAt.toLocaleString("zh-CN")}
-          </p>
+          <div className="flex flex-col gap-2 text-[13px] leading-5">
+            <div dangerouslySetInnerHTML={{ __html: activity.title }} />
+            <div>状态：{activity.runtimeStatus}</div>
+            <div>
+              时间：{activity.startAt.toLocaleString("zh-CN")} ~{" "}
+              {activity.endAt.toLocaleString("zh-CN")}
+            </div>
+          </div>
         ) : (
           <p>尚未配置活动</p>
         )}

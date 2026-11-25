@@ -65,7 +65,17 @@ export default function AdminShell({
           </div>
           <LogoutButton />
         </div>
-        <div className="admin-content">{children}</div>
+        <div
+          className={[
+            "admin-content flex flex-col gap-4 !overflow-x-auto",
+            "[&>*]:shrink-0",
+            "[&>h2]:m-0 [&>h2]:text-lg [&>h2]:font-bold",
+            "[&>h3]:m-0 [&>p]:m-0",
+            "[&_.admin-card]:overflow-x-auto",
+          ].join(" ")}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
