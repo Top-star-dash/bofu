@@ -50,12 +50,14 @@ export default function WechatShare({
   cover: string;
 }) {
   useEffect(() => {
-    if (!enabled || !link) return;
+    if (!enabled) return;
     let cancelled = false;
 
     async function setup() {
       try {
-        const pageUrl = link.split("#")[0];
+        // 签名 URL 必须是浏览器当前地址（去 hash），与分享出去的助力链接无关。
+        // 用助力链接签名会触发 invalid signature，导致 wx.config 失败、分享退回 URL 链接。
+        const pageUrl = window.location.href.split("#")[0];
         const response = await fetch(
           `/api/wechat/jssdk?url=${encodeURIComponent(pageUrl)}`,
         );
@@ -81,10 +83,28 @@ export default function WechatShare({
           jsApiList: ["updateAppMessageShareData", "updateTimelineShareData"],
         });
 
+        // 分享出去的链接才是带归因参数的助力链接；无 customer 时降级为当前地址
+        const shareLink = link || pageUrl;
+        // 微信分享封面要求可访问的绝对地址，站内相对路径补全为当前 origin
+        const coverUrl = /^https?:\/\//i.test(cover)
+          ? cover
+          : cover.startsWith("/")
+            ? `${window.location.origin}${cover}`
+            : "";
+
         wx.ready(() => {
           if (cancelled) return;
-          wx.updateAppMessageShareData({ title, desc, link, imgUrl: cover });
-          wx.updateTimelineShareData({ title, link, imgUrl: cover });
+          wx.updateAppMessageShareData({
+            title,
+            desc,
+            link: shareLink,
+            ...(coverUrl ? { imgUrl: coverUrl } : {}),
+          });
+          wx.updateTimelineShareData({
+            title,
+            link: shareLink,
+            ...(coverUrl ? { imgUrl: coverUrl } : {}),
+          });
         });
       } catch {
         // 分享失败不影响页面使用

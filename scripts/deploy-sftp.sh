@@ -2,12 +2,13 @@
 #
 # 博富·福美城 H5 —— 通过 SFTP 把代码上传到 RX 的 /mnt/data/html/bofu
 #
-#   ./scripts/deploy-sftp.sh            上传 + 服务器 npm ci + prisma generate + build + pm2 重启
+#   ./scripts/deploy-sftp.sh            上传 + npm ci + prisma generate + 迁移/db push + build + pm2 重启
 #   ./scripts/deploy-sftp.sh --install  上传 + npm ci（不构建、不重启）
 #   ./scripts/deploy-sftp.sh --upload   只上传代码
 #   ./scripts/deploy-sftp.sh --env      额外强制覆盖服务器上的 .env
 #
 # 首次部署时若服务器没有 .env，会自动把本地 .env 传上去；之后不再覆盖。
+# 有 prisma/migrations 时跑 migrate deploy（只应用未执行的）；否则回退 db push。
 set -euo pipefail
 
 HOST="${DEPLOY_HOST:-RX}"                 # ~/.ssh/config 里的 Host
@@ -95,6 +96,19 @@ if [ "$MODE" = "install" ]; then
   echo "✔ 依赖与 Prisma Client 就绪（未构建、未重启服务）"
   exit 0
 fi
+
+# schema 变更必须同步到库，否则新代码查询新增字段会报 P2022
+# 有迁移目录 → migrate deploy（幂等，只跑未应用的）；否则 → db push
+# db push 不传 --accept-data-loss：需删列/收窄类型会失败并中止部署
+echo "▶ 同步数据库结构"
+ssh "$HOST" "cd '$REMOTE_DIR' && set -a && . ./.env && set +a && \
+  if compgen -G 'prisma/migrations/*/migration.sql' > /dev/null; then \
+    echo '  检测到迁移文件 → prisma migrate deploy'; \
+    npx prisma migrate deploy; \
+  else \
+    echo '  无迁移文件 → prisma db push'; \
+    npx prisma db push; \
+  fi"
 
 echo "▶ 构建"
 ssh "$HOST" "cd '$REMOTE_DIR' && npm run build"

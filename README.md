@@ -118,14 +118,16 @@ npx prisma migrate deploy
 代码放在 RX 的 `/mnt/data/html/bofu`（系统盘 `/var/www` 已用 96%，数据盘 `/mnt/data` 还剩 36G），pm2 以 `127.0.0.1:3007` 运行，Apache 反代 `bofu.gdruixiang.com`；启动参数见 `ecosystem.config.cjs`。
 
 ```bash
-bash scripts/deploy-sftp.sh            # 上传 + npm ci + prisma generate + build + pm2 重启
+bash scripts/deploy-sftp.sh            # 上传 + npm ci + prisma generate + 迁移/db push + build + pm2 重启
 bash scripts/deploy-sftp.sh --install  # 只到 npm ci，不构建不重启
 bash scripts/deploy-sftp.sh --upload   # 只上传代码
 bash scripts/deploy-sftp.sh --env      # 强制用本地 .env 覆盖服务器上的
 ```
 
-脚本把源码打成约 30MB 的包（排除 `node_modules`、`.next`、`.git`、素材原图、`.env`），用 SFTP 传到 `/mnt/data/html/bofu/.incoming/src.tar.gz`，再 ssh 上去解包、装依赖、构建、重启 pm2。
+脚本把源码打成约 30MB 的包（排除 `node_modules`、`.next`、`.git`、素材原图、`.env`），用 SFTP 传到 `/mnt/data/html/bofu/.incoming/src.tar.gz`，再 ssh 上去解包、装依赖、`prisma generate`、**同步表结构**、构建、重启 pm2。
 服务器上首次没有 `.env` 时会自动补一份，之后不再覆盖，避免把线上配置冲掉。
+
+> 表结构同步：仓库里有 `prisma/migrations/*/migration.sql` 时执行 **`prisma migrate deploy`**（只应用库里尚未记录的迁移）；没有迁移文件时回退 **`prisma db push`**。`prisma generate` 只生成客户端、不动表结构——少了同步这一步，新代码查新增字段会直接 `P2022 ColumnNotFound`（2026-11-25 线上全站 500 就是这个原因）。`db push` 不传 `--accept-data-loss`，需删列/收窄类型会失败并中止部署。
 
 > Windows 版 sftp 不支持 `mkdir -p`，也不认 MSYS 路径，所以脚本里目录用 ssh 建、文件用 `lcd` + 相对路径传。
 
@@ -137,9 +139,10 @@ RX 上跑的是 MariaDB 10.11（`127.0.0.1:3306`，只监听本机），库 `bof
 # 建库（首次）
 sudo mysql -e "CREATE DATABASE IF NOT EXISTS bofu_fumei_lottery CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-# 建表 + 种子（schema 变更后都要跑一次）
+# 建表 + 种子（无迁移文件时用 db push；有 migrations 则用 migrate deploy）
 ssh RX "cd /mnt/data/html/bofu && npx prisma db push && npm run db:seed"
+# 或：ssh RX "cd /mnt/data/html/bofu && npx prisma migrate deploy && npm run db:seed"
 ```
 
 `.env` 里对应 `DATABASE_URL="mysql://dev:<密码>@127.0.0.1:3306/bofu_fumei_lottery"`。
-改过 `prisma/schema.prisma` 后必须重新 `db push`，`npm run build` 里的 `prisma generate` 只重生成客户端、不动表结构。
+改过 schema 后，本地用 `npm run db:migrate` 生成迁移文件并提交；`bash scripts/deploy-sftp.sh` 会自动 `migrate deploy`（无迁移则 `db push`）。手工部署时仍需自己跑同步，`npm run build` 里的 `prisma generate` 只重生成客户端、不动表结构。
