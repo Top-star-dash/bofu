@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import { NextResponse } from "next/server";
 import { guardApi } from "@/lib/admin-guard";
 import { safeMediaUrl } from "@/lib/urls";
 
 const MAX_BYTES = 5 * 1024 * 1024;
+// H5 展示最大边 1600px 足够，超出部分等比缩放；质量 80 兼顾清晰度与体积
+const MAX_EDGE = 1600;
+const WEBP_QUALITY = 80;
 const EXT_BY_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -35,14 +39,43 @@ export async function POST(request: Request) {
     );
   }
 
+  const input = Buffer.from(await file.arrayBuffer());
+  let output = input;
+  let outExt = ext;
+  // gif 可能为动图，sharp 默认只取首帧，保持原样
+  if (ext !== "gif") {
+    const compressed = await sharp(input)
+      .rotate() // 按 EXIF 校正方向
+      .resize({
+        width: MAX_EDGE,
+        height: MAX_EDGE,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: WEBP_QUALITY })
+      .toBuffer()
+      .catch(() => null);
+    // 压缩后更小才采用，避免小图反而变大
+    if (compressed && compressed.length < input.length) {
+      output = compressed;
+      outExt = "webp";
+    }
+  }
+
   const now = new Date();
   const folder = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const filename = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}.${ext}`;
+  const filename = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}.${outExt}`;
   const dir = path.join(process.cwd(), "public", "uploads", folder);
 
   await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()));
+  await writeFile(path.join(dir, filename), output);
 
   const url = `/uploads/${folder}/${filename}`;
-  return NextResponse.json({ ok: true, url: safeMediaUrl(url) });
+  return NextResponse.json({
+    ok: true,
+    url: safeMediaUrl(url),
+    compressed: outExt === "webp",
+    originalBytes: input.length,
+    outputBytes: output.length,
+  });
 }

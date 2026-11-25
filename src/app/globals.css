@@ -889,15 +889,21 @@ button {
 
 .poster-media {
   position: relative;
-  width: 100%;
+  /* 收缩到图片实际显示宽度，关闭按钮才能始终贴合图片右上角（大屏不再飘到视口边缘） */
+  display: block;
+  width: fit-content;
+  max-width: 100%;
   max-height: calc(100% - 24px);
+  line-height: 0;
 }
 
 .poster-media img {
   display: block;
-  width: 100%;
+  width: auto;
   height: auto;
-  max-height: calc(100% - 24px);
+  max-width: 100%;
+  /* panel 高 80dvh，预留下方倒计时文字空间；用视口单位避免父级高度 auto 时百分比失效 */
+  max-height: calc(80dvh - 24px);
   object-fit: contain;
 }
 
