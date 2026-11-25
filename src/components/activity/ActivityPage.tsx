@@ -392,6 +392,16 @@ export default function ActivityPage({
             ? "点击转盘，立即抽奖"
             : "次数已用完，邀请好友再得机会";
 
+  // 公告放大成主标题后，副标题若与公告文案重复就隐藏，避免同一句话出现两次
+  const subtitleText = activity.subtitle
+    ? activity.subtitle.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()
+    : "";
+  const showSubtitle =
+    Boolean(subtitleText) &&
+    !activity.notices.some(
+      (item) => item.replace(/\s+/g, " ").trim() === subtitleText,
+    );
+
   return (
     // 内容区域
     <main className="activity-page">
@@ -434,12 +444,13 @@ export default function ActivityPage({
       {/* 内容滚动区域 */}
       <div className="page-scroll">
       <section className="main-content" aria-labelledby="activity-title">
-        {/* 活动公告 */}
+        {/* 活动公告：主视觉大字轮播，文案用回车分成两行 */}
         {activity.notices.length > 0 && (
           <div className="notice" aria-live="polite">
-            <span>活动公告</span>
-            <b>{activity.notices[notice]}</b>
-            <div>
+            <p className="notice-text" key={notice}>
+              {activity.notices[notice]}
+            </p>
+            <div className="notice-dots">
               {activity.notices.map((item, index) => (
                 <button
                   key={item}
@@ -458,10 +469,10 @@ export default function ActivityPage({
             id="activity-title"
             dangerouslySetInnerHTML={{ __html: activity.title }}
           />
-          {activity.subtitle ? (
+          {showSubtitle ? (
             <div
               className="activity-subtitle"
-              dangerouslySetInnerHTML={{ __html: activity.subtitle }}
+              dangerouslySetInnerHTML={{ __html: activity.subtitle || "" }}
             />
           ) : null}
           {/* 活动开始时间 */}

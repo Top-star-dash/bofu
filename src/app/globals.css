@@ -261,59 +261,73 @@ button {
   font-size: 11px;
 }
 
+/* 活动公告：主视觉大字轮播（无底板、无标签，左下角长条指示器） */
 .notice {
+  margin-top: 14px;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.notice-text {
+  display: grid;
+  align-content: center;
+  min-height: 2.36em;
+  margin: 0;
+  color: #fff7dc;
+  font: 800 clamp(26px, 8.6vw, 34px)/1.18 Georgia, "Songti SC", serif;
+  letter-spacing: 0.01em;
+  text-align: center;
+  white-space: pre-line;
+  text-wrap: balance;
+  word-break: break-word;
+  text-shadow: 2px 3px #ad2418;
+  animation: notice-in 0.32s ease-out;
+}
+
+.notice-dots {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-top: 13px;
-  padding: 8px 9px;
-  border-radius: 3px;
-  background: #8c251d99;
-  font-size: 11px;
+  gap: 6px;
+  margin-top: 9px;
+  padding-left: 2px;
 }
 
-.notice>span {
-  color: var(--gold);
-  white-space: nowrap;
-}
-
-.notice b {
-  flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-weight: 500;
-}
-
-.notice>div {
-  display: flex;
-  gap: 4px;
-}
-
-.notice button {
+.notice-dots button {
   width: 6px;
   height: 6px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: #ec9b82;
+  border-radius: 99px;
+  background: #fff3d7ad;
+  transition: width 0.28s ease, background 0.28s ease;
 }
 
-.notice button[aria-current=true] {
+.notice-dots button[aria-current="true"] {
+  width: 22px;
   background: var(--gold);
-  transform: scale(1.5);
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .activity-title {
-  padding: 24px 8px 14px;
+  padding: 12px 8px 12px;
   text-align: center;
 }
 
 .activity-title h1 {
   margin: 0;
   color: #fff7dc;
-  font: 700 32px/1.13 Georgia, "Songti SC", serif;
-  text-shadow: 2px 3px #ad2418;
+  font: 700 22px/1.22 Georgia, "Songti SC", serif;
+  text-shadow: 1px 2px #ad2418;
 }
 
 .activity-title h1 p {
@@ -326,10 +340,10 @@ button {
 }
 
 .activity-subtitle {
-  margin: 8px 0 10px;
+  margin: 6px 0 8px;
   color: var(--gold);
-  font-size: 21px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .activity-subtitle p {
@@ -366,7 +380,7 @@ button {
   position: relative;
   display: grid;
   place-items: center;
-  width: 60%;
+  width: 100%;
   aspect-ratio: 1;
 }
 

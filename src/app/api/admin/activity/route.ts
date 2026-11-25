@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { guardApi } from "@/lib/admin-guard";
 import { getCurrentActivity } from "@/lib/activity";
+import { writeOperationLog } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { safeHttpUrl, safeMediaUrl } from "@/lib/urls";
 
@@ -103,13 +104,12 @@ export async function PATCH(request: Request) {
     data,
   });
 
-  await prisma.operationLog.create({
-    data: {
-      userId: guard.session.sub,
-      action: "activity.update",
-      detail: Object.keys(data).join(","),
-    },
-  });
+  const changed = Object.keys(data);
+  await writeOperationLog(
+    guard.session.sub,
+    "activity.update",
+    changed.length ? `更新 ${changed.length} 项：${changed.join(",")}` : "无字段变更",
+  );
 
   return NextResponse.json({ ok: true, activity: { id: updated.id } });
 }

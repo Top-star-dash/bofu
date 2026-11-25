@@ -82,7 +82,10 @@ export default function NoticeManager({ notices }: { notices: Notice[] }) {
 
   return (
     <div className="admin-card">
-      <h3 style={{ marginTop: 0 }}>活动公告（H5 顶部轮播）</h3>
+      <h3 style={{ marginTop: 0 }}>活动公告（H5 顶部大字轮播）</h3>
+      <p style={{ marginTop: 0, marginBottom: 12, fontSize: 12, color: "#8a6c5b" }}>
+        每条公告按主标题展示，建议 4～10 个字；需要两行时在文案里按回车换行。
+      </p>
       <table className="admin-table">
         <thead>
           <tr>
@@ -96,8 +99,10 @@ export default function NoticeManager({ notices }: { notices: Notice[] }) {
           {rows.map((row) => (
             <tr key={row.id}>
               <td>
-                <input
+                <textarea
                   className="admin-inline-input"
+                  rows={2}
+                  maxLength={200}
                   value={row.content}
                   onChange={(event) => update(row.id, { content: event.target.value })}
                 />
@@ -145,7 +150,7 @@ export default function NoticeManager({ notices }: { notices: Notice[] }) {
       <form className="admin-form inline-form" onSubmit={create}>
         <label>
           新增公告内容
-          <input name="content" required maxLength={200} />
+          <textarea name="content" required maxLength={200} rows={2} />
         </label>
         <label>
           排序

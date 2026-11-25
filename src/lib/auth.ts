@@ -106,16 +106,31 @@ export async function loadAdminAuthPayload(username: string, password: string) {
   } satisfies AdminSession;
 }
 
+/** 日志正文上限：列已为 TEXT，这里只做防御性截断，避免异常长内容拖垮写入 */
+const LOG_DETAIL_MAX = 500;
+
+export function trimLogDetail(detail?: string | null) {
+  if (detail === undefined || detail === null) return null;
+  const text = String(detail);
+  if (text.length <= LOG_DETAIL_MAX) return text;
+  return `${text.slice(0, LOG_DETAIL_MAX)}…（已截断，原长 ${text.length}）`;
+}
+
 export async function writeOperationLog(
   userId: string | null | undefined,
   action: string,
-  detail?: string,
+  detail?: string | null,
 ) {
-  await prisma.operationLog.create({
-    data: {
-      userId: userId || null,
-      action,
-      detail,
-    },
-  });
+  try {
+    await prisma.operationLog.create({
+      data: {
+        userId: userId || null,
+        action,
+        detail: trimLogDetail(detail),
+      },
+    });
+  } catch (error) {
+    // 操作日志属旁路记录，写入失败不应影响主业务流程
+    console.error(`[operationLog] 写入失败 action=${action}`, error);
+  }
 }
