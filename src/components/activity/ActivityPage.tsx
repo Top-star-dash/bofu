@@ -75,6 +75,7 @@ export default function ActivityPage({
   } | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const posterRef = useRef<HTMLDialogElement>(null);
+  const previewRef = useRef<HTMLDialogElement>(null);
 
   function showToast(text: string, type: "error" | "info" = "error") {
     setToast({ text, type });
@@ -120,6 +121,15 @@ export default function ActivityPage({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [modal]);
+
+  useEffect(() => {
+    if (!imagePreview) return;
+    const frame = window.requestAnimationFrame(() => {
+      const dialog = previewRef.current;
+      if (dialog && !dialog.open) dialog.showModal();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [imagePreview]);
 
   useEffect(() => {
     if (!poster || !activity) return;
@@ -1269,28 +1279,29 @@ export default function ActivityPage({
       )}
 
       {imagePreview && (
-        <div
-          className="image-lightbox"
-          role="dialog"
-          aria-modal="true"
+        <dialog
+          ref={previewRef}
+          className="modal-dialog"
           aria-label={imagePreview.title}
-          onClick={() => setImagePreview(null)}
+          onClose={() => setImagePreview(null)}
+          onClick={(event) => {
+            if (event.target === previewRef.current) setImagePreview(null);
+          }}
         >
-          <button
-            type="button"
-            className="image-lightbox-close"
-            aria-label="关闭预览"
-            onClick={() => setImagePreview(null)}
-          >
-            ×
-          </button>
-          <img
-            src={imagePreview.src}
-            alt={imagePreview.title}
-            onClick={(event) => event.stopPropagation()}
-          />
-          <p>{imagePreview.title}</p>
-        </div>
+          <div className="modal-panel media-preview-panel">
+            <button
+              className="modal-close"
+              type="button"
+              onClick={() => setImagePreview(null)}
+              aria-label="关闭预览"
+            >
+              ×
+            </button>
+            <span>图片预览</span>
+            <h2 id="preview-title">{imagePreview.title}</h2>
+            <img src={imagePreview.src} alt={imagePreview.title} />
+          </div>
+        </dialog>
       )}
 
       {toast && (
