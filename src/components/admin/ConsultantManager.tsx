@@ -2,6 +2,7 @@
 
 import { FormEvent, Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
+import ImageField from "./ImageField";
 
 export type ConsultantRow = {
   id: string;
@@ -317,24 +318,6 @@ export default function ConsultantManager({
                             />
                           </label>
                           <label>
-                            头像地址
-                            <input
-                              value={row.avatarUrl}
-                              onChange={(event) =>
-                                update(row.id, { avatarUrl: event.target.value })
-                              }
-                            />
-                          </label>
-                          <label>
-                            二维码图地址
-                            <input
-                              value={row.qrcodeUrl}
-                              onChange={(event) =>
-                                update(row.id, { qrcodeUrl: event.target.value })
-                              }
-                            />
-                          </label>
-                          <label>
                             顾问本人 OpenID（过滤自点）
                             <input
                               value={row.openid}
@@ -343,6 +326,24 @@ export default function ConsultantManager({
                               }
                             />
                           </label>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <ImageField
+                            label="顾问头像"
+                            value={row.avatarUrl}
+                            onChange={(value) =>
+                              update(row.id, { avatarUrl: value })
+                            }
+                            hint="头像地址，或点击上传"
+                          />
+                          <ImageField
+                            label="微信二维码（客户加微信用）"
+                            value={row.qrcodeUrl}
+                            onChange={(value) =>
+                              update(row.id, { qrcodeUrl: value })
+                            }
+                            hint="微信二维码图片，或点击上传"
+                          />
                         </div>
                         <label className="stacked">
                           介绍
