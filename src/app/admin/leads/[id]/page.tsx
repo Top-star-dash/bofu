@@ -133,6 +133,33 @@ export default async function AdminLeadDetailPage({
       </div>
 
       <div className="admin-card">
+        <h3 style={{ marginTop: 0 }}>微信用户</h3>
+        <div className="flex flex-wrap items-start gap-4">
+          {customer.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={customer.avatarUrl}
+              alt={customer.nickname || "微信头像"}
+              className="h-16 w-16 rounded-full border border-[#f0e2d2] object-cover"
+            />
+          ) : (
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-[#fff2df] text-[12px] text-[#9b7d64]">
+              无头像
+            </div>
+          )}
+          <p style={{ margin: 0 }}>
+            昵称：{customer.nickname || "未授权资料"}
+            <br />
+            OpenID：{customer.openid}
+            <br />
+            UnionID：{customer.unionid || "-"}
+            <br />
+            邀请人：{customer.inviter?.nickname || "无（自然访问）"}
+          </p>
+        </div>
+      </div>
+
+      <div className="admin-card">
         <h3 style={{ marginTop: 0 }}>留资信息</h3>
         <p>
           意向户型：{lead.intentLayout || "-"}
@@ -145,8 +172,6 @@ export default async function AdminLeadDetailPage({
           {lead.visitDate ? lead.visitDate.toLocaleDateString("zh-CN") : "-"}
           <br />
           留资时间：{lead.createdAt.toLocaleString("zh-CN")}
-          <br />
-          邀请人：{customer.inviter?.nickname || "无（自然访问）"}
           <br />
           楼盘停留：{customer.propertyStaySec} 秒
         </p>

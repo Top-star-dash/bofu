@@ -83,7 +83,11 @@ export default async function AdminLeadsPage({
       <form className="admin-toolbar" method="get" action="/admin/leads">
         <label>
           关键词
-          <input name="q" defaultValue={q} placeholder="姓名 / 手机号" />
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="姓名 / 手机 / 微信昵称"
+          />
         </label>
         <label>
           线索分层
@@ -136,6 +140,7 @@ export default async function AdminLeadsPage({
             <tr>
               <th>姓名</th>
               <th>手机号</th>
+              <th>微信昵称</th>
               <th>意向户型</th>
               <th>关注点</th>
               <th>预计到访</th>
@@ -150,6 +155,23 @@ export default async function AdminLeadsPage({
               <tr key={lead.id}>
                 <td>{lead.name}</td>
                 <td>{lead.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")}</td>
+                <td>
+                  {lead.customer.nickname || lead.customer.avatarUrl ? (
+                    <span className="inline-flex items-center gap-2">
+                      {lead.customer.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={lead.customer.avatarUrl}
+                          alt=""
+                          className="h-7 w-7 rounded-full object-cover"
+                        />
+                      ) : null}
+                      <span>{lead.customer.nickname || "已授权"}</span>
+                    </span>
+                  ) : (
+                    <span className="text-[#9b7d64]">未授权资料</span>
+                  )}
+                </td>
                 <td>{lead.intentLayout || "-"}</td>
                 <td>{lead.focusFactors || "-"}</td>
                 <td>
@@ -167,7 +189,7 @@ export default async function AdminLeadsPage({
             ))}
             {!leads.length && (
               <tr>
-                <td colSpan={9}>没有匹配的线索</td>
+                <td colSpan={10}>没有匹配的线索</td>
               </tr>
             )}
           </tbody>

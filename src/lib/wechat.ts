@@ -124,7 +124,13 @@ export function buildAuthorizeUrl(params: {
 }
 
 type WechatTokenResult =
-  | { ok: true; openid: string; accessToken: string; scope: string }
+  | {
+      ok: true;
+      openid: string;
+      accessToken: string;
+      scope: string;
+      unionid: string | null;
+    }
   | { ok: false; errcode: number; errmsg: string };
 
 async function fetchWechatJson<T>(url: string, timeoutMs = 8000) {
@@ -164,6 +170,7 @@ export async function exchangeCodeForToken(
       openid?: string;
       access_token?: string;
       scope?: string;
+      unionid?: string;
       errcode?: number;
       errmsg?: string;
     }>(`${ACCESS_TOKEN_URL}?${query.toString()}`);
@@ -181,6 +188,7 @@ export async function exchangeCodeForToken(
       openid: data.openid,
       accessToken: data.access_token,
       scope: data.scope || "",
+      unionid: data.unionid?.trim() || null,
     };
   } catch (error) {
     return {
@@ -205,12 +213,14 @@ export async function fetchWechatUserProfile(
     const data = await fetchWechatJson<{
       nickname?: string;
       headimgurl?: string;
+      unionid?: string;
       errcode?: number;
     }>(`${USER_INFO_URL}?${query.toString()}`);
     if (data.errcode) return null;
     return {
-      nickname: data.nickname || null,
-      avatarUrl: data.headimgurl || null,
+      nickname: data.nickname?.trim() || null,
+      avatarUrl: data.headimgurl?.trim() || null,
+      unionid: data.unionid?.trim() || null,
     };
   } catch {
     return null;

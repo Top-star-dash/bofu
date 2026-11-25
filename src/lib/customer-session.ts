@@ -76,6 +76,7 @@ export async function ensureCustomer(params: {
   /** 允许覆盖已锁定的默认顾问（自然访问先锁默认、首位销售链接可接管） */
   forceConsultantId?: string | null;
   inviterId?: string | null;
+  unionid?: string | null;
   nickname?: string | null;
   avatarUrl?: string | null;
 }) {
@@ -88,6 +89,10 @@ export async function ensureCustomer(params: {
     },
     include: { lead: true },
   });
+
+  const unionid = params.unionid?.trim() || null;
+  const nickname = params.nickname?.trim() || null;
+  const avatarUrl = params.avatarUrl?.trim() || null;
 
   if (existing) {
     // C.2.2：邀请关系只在为空时写入，首次锁定后不再改
@@ -105,8 +110,10 @@ export async function ensureCustomer(params: {
           params.consultantId ||
           undefined,
         inviterId: inviterId || undefined,
-        nickname: params.nickname || existing.nickname,
-        avatarUrl: params.avatarUrl || existing.avatarUrl,
+        // 有新资料则刷新；空值不抹掉已落库信息
+        unionid: unionid || existing.unionid,
+        nickname: nickname || existing.nickname,
+        avatarUrl: avatarUrl || existing.avatarUrl,
       },
     });
     return prisma.customer.findUniqueOrThrow({
@@ -119,12 +126,13 @@ export async function ensureCustomer(params: {
     data: {
       activityId: params.activityId,
       openid: params.openid,
+      unionid: unionid || undefined,
       consultantId: params.consultantId || undefined,
       inviterId:
         (await resolveInviterId(params.activityId, params.inviterId)) ||
         undefined,
-      nickname: params.nickname || undefined,
-      avatarUrl: params.avatarUrl || undefined,
+      nickname: nickname || undefined,
+      avatarUrl: avatarUrl || undefined,
       drawChance: 0,
     },
     include: { lead: true, drawRecords: { orderBy: { createdAt: "desc" } } },

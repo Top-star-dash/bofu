@@ -64,6 +64,7 @@ export async function GET(request: Request) {
     openid: token.openid,
     consultantId: consultant?.id,
     inviterId: state.i,
+    unionid: profile?.unionid || token.unionid,
     nickname: profile?.nickname ?? null,
     avatarUrl: profile?.avatarUrl ?? null,
   });

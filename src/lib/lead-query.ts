@@ -16,7 +16,12 @@ export function buildLeadWhere(input: LeadQueryInput): Prisma.LeadWhereInput {
   const tier = input.tier?.trim();
 
   if (q) {
-    where.OR = [{ name: { contains: q } }, { phone: { contains: q } }];
+    where.OR = [
+      { name: { contains: q } },
+      { phone: { contains: q } },
+      { customer: { nickname: { contains: q } } },
+      { customer: { openid: { contains: q } } },
+    ];
   }
   if (tier === "A" || tier === "B" || tier === "C") {
     where.tier = tier;

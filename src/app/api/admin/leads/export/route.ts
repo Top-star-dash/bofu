@@ -15,6 +15,7 @@ const COLUMNS = [
   "线索分层",
   "备注",
   "微信昵称",
+  "OpenID",
   "留资时间",
 ];
 
@@ -84,6 +85,7 @@ export async function GET(request: Request) {
       lead.tier,
       lead.remark ?? "",
       lead.customer.nickname ?? "",
+      lead.customer.openid,
       dateTimeFormatter.format(lead.createdAt),
     ]
       .map(csvCell)
