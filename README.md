@@ -111,14 +111,14 @@ npm run build          # prisma generate && next build
 npm run lint
 npm run db:seed
 npx prisma migrate deploy
-npm run images:webp    # 把 public 下 jpg/png 批量转同名 webp（不删原图）
+npm run images:webp    # 把 public 下 jpg/png 批量转同名 webp 并删除原图（--keep 可保留）
 ```
 
 ## 图片优化
 
 - 后台 `/api/admin/upload` 上传的 jpg/png 统一输出 WebP（GIF 动图保留原格式），最长边 1600px、质量 80。
-- 历史素材可执行 `npm run images:webp` 批量生成同名 `.webp`；代码会把 `/property`、`/activity`、`/uploads` 下的 jpg/png 自动指向同名 webp，数据库无需改字段。
-- 原图保留作备份；确认不再需要后可自行清理，不影响站内引用。
+- 历史素材可执行 `npm run images:webp` 批量生成同名 `.webp`，转换成功后删除原图；代码会把 `/property`、`/activity`、`/uploads` 下的 jpg/png 自动指向同名 webp，数据库无需改字段。
+- **`public` 下只保留 `.webp`**，不再保留 jpg/png 原图；微信分享封面同样使用 webp。
 
 ## 部署（SFTP → RX）
 
@@ -131,7 +131,7 @@ bash scripts/deploy-sftp.sh --upload   # 只上传代码
 bash scripts/deploy-sftp.sh --env      # 强制用本地 .env 覆盖服务器上的
 ```
 
-脚本把源码打成约 30MB 的包（排除 `node_modules`、`.next`、`.git`、素材原图、`.env`），用 SFTP 传到 `/mnt/data/html/bofu/.incoming/src.tar.gz`，再 ssh 上去解包、装依赖、`prisma generate`、**同步表结构**、构建、重启 pm2。
+脚本把源码打成约 5MB 的包（排除 `node_modules`、`.next`、`.git`、`.env`），用 SFTP 传到 `/mnt/data/html/bofu/.incoming/src.tar.gz`，再 ssh 上去解包、装依赖、`prisma generate`、**同步表结构**、构建、重启 pm2。
 服务器上首次没有 `.env` 时会自动补一份，之后不再覆盖，避免把线上配置冲掉。
 
 > 表结构同步：仓库里有 `prisma/migrations/*/migration.sql` 时执行 **`prisma migrate deploy`**（只应用库里尚未记录的迁移）；没有迁移文件时回退 **`prisma db push`**。`prisma generate` 只生成客户端、不动表结构——少了同步这一步，新代码查新增字段会直接 `P2022 ColumnNotFound`（2026-11-25 线上全站 500 就是这个原因）。`db push` 不传 `--accept-data-loss`，需删列/收窄类型会失败并中止部署。

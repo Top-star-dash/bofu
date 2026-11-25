@@ -437,11 +437,11 @@ export default function ActivityPage({
   const shareTitle =
     activity.shareTitle ||
     activity.title.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-  // 微信分享封面不保证支持 WebP，继续使用原始 jpg/png
+  // 封面统一用 WebP（public 下已不保留 jpg/png 原图）
   const shareCover =
-    safeMediaUrl(activity.shareCoverUrl, { webp: false }) ||
-    safeMediaUrl(activity.posterUrl, { webp: false }) ||
-    "/activity/kv-popup.jpg";
+    safeMediaUrl(activity.shareCoverUrl) ||
+    safeMediaUrl(activity.posterUrl) ||
+    "/activity/kv-popup.webp";
   // 公告放大成主标题后，副标题若与公告文案重复就隐藏，避免同一句话出现两次
   const subtitleText = activity.subtitle
     ? activity.subtitle.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()
@@ -590,7 +590,10 @@ export default function ActivityPage({
           <section className="content-card consultant-card" aria-label="销售顾问">
             <div className="consultant-avatar">
               {consultant.avatarUrl ? (
-                <img src={consultant.avatarUrl} alt={consultant.name} />
+                <img
+                  src={safeMediaUrl(consultant.avatarUrl) || ""}
+                  alt={consultant.name}
+                />
               ) : (
                 consultant.name.slice(0, 1)
               )}
@@ -606,7 +609,10 @@ export default function ActivityPage({
             </div>
             <div className="qr-box">
               {consultant.qrcodeUrl ? (
-                <img src={consultant.qrcodeUrl} alt="顾问二维码" />
+                <img
+                  src={safeMediaUrl(consultant.qrcodeUrl) || ""}
+                  alt="顾问二维码"
+                />
               ) : (
                 <>
                   顾问
@@ -807,7 +813,7 @@ export default function ActivityPage({
             >
               <div className="consultant-avatar small">
                 {consultant.avatarUrl ? (
-                  <img src={consultant.avatarUrl} alt="" />
+                  <img src={safeMediaUrl(consultant.avatarUrl) || ""} alt="" />
                 ) : (
                   consultant.name.slice(0, 1)
                 )}
@@ -1307,7 +1313,10 @@ export default function ActivityPage({
                 <div className="consultant-modal">
                   <div className="consultant-avatar large">
                     {consultant.avatarUrl ? (
-                      <img src={consultant.avatarUrl} alt="" />
+                      <img
+                        src={safeMediaUrl(consultant.avatarUrl) || ""}
+                        alt=""
+                      />
                     ) : (
                       consultant.name.slice(0, 1)
                     )}
@@ -1322,7 +1331,10 @@ export default function ActivityPage({
                   </a>
                   <div className="qr-box large">
                     {consultant.qrcodeUrl ? (
-                      <img src={consultant.qrcodeUrl} alt="顾问微信二维码" />
+                      <img
+                        src={safeMediaUrl(consultant.qrcodeUrl) || ""}
+                        alt="顾问微信二维码"
+                      />
                     ) : (
                       "顾问微信二维码"
                     )}

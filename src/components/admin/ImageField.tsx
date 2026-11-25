@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useState } from "react";
+import { safeMediaUrl } from "@/lib/urls";
 
 type Props = {
   label: string;
@@ -64,7 +65,7 @@ export default function ImageField({ label, value, onChange, hint }: Props) {
       {value ? (
         <img
           className="h-16 w-16 rounded-lg border border-[#f0e2d2] object-cover"
-          src={value}
+          src={safeMediaUrl(value) || ""}
           alt={label}
         />
       ) : null}

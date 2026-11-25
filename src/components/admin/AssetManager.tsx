@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { safeMediaUrl } from "@/lib/urls";
 
 export type AssetRow = {
   key: string;
@@ -178,7 +179,7 @@ export default function AssetManager({ initial }: { initial: AssetRow[] }) {
                     >
                       <img
                         className="h-14 w-14 rounded object-cover"
-                        src={row.imageUrl}
+                        src={safeMediaUrl(row.imageUrl) || ""}
                         alt={row.title || "素材缩略图"}
                       />
                     </button>
@@ -294,7 +295,7 @@ export default function AssetManager({ initial }: { initial: AssetRow[] }) {
           >
             <img
               className="max-h-[78vh] max-w-full rounded-lg bg-white object-contain"
-              src={preview.imageUrl}
+              src={safeMediaUrl(preview.imageUrl) || ""}
               alt={preview.title || "素材预览"}
             />
             <div className="flex flex-wrap items-center justify-between gap-3">
