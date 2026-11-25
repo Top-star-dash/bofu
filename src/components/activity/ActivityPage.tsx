@@ -85,19 +85,26 @@ export default function ActivityPage({
     let cancelled = false;
     async function bootstrap() {
       setLoading(true);
-      const response = await fetch("/api/session/bootstrap", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shareCode, inviterId }),
-      });
-      const data = await response.json();
-      if (!cancelled && response.ok) {
-        setActivity(data.activity);
-        setCustomer(data.customer);
-      } else if (!cancelled) {
-        showToast(data.message || "活动加载失败");
+      try {
+        const response = await fetch("/api/session/bootstrap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shareCode, inviterId }),
+        });
+        // 服务重启 / 反代 502 等场景会返回空 body，json() 会抛 "Unexpected end of JSON input"
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (response.ok) {
+          setActivity(data.activity);
+          setCustomer(data.customer);
+        } else {
+          showToast(data.message || "活动加载失败");
+        }
+      } catch {
+        if (!cancelled) showToast("网络异常，请稍后重试");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      if (!cancelled) setLoading(false);
     }
     void bootstrap();
     return () => {
