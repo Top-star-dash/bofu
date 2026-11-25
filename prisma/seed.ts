@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { hash } from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
 
@@ -9,7 +9,7 @@ if (!connectionString) {
 }
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString }),
+  adapter: new PrismaMariaDb(connectionString),
 });
 
 const PERMISSIONS = [

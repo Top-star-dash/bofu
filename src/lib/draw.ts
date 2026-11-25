@@ -4,6 +4,14 @@ function toNumber(value: { toString(): string } | number) {
   return typeof value === "number" ? value : Number(value.toString());
 }
 
+/** 以北京时间零点为界计算当日起点 */
+function shanghaiDayStart(now: Date) {
+  const offsetMs = 8 * 60 * 60 * 1000;
+  const local = now.getTime() + offsetMs;
+  const dayStartLocal = Math.floor(local / 86_400_000) * 86_400_000;
+  return new Date(dayStartLocal - offsetMs);
+}
+
 export async function drawPrize(activityId: string, customerId: string) {
   return prisma.$transaction(async (tx) => {
     const customer = await tx.customer.findUnique({ where: { id: customerId } });
@@ -20,6 +28,22 @@ export async function drawPrize(activityId: string, customerId: string) {
     const now = Date.now();
     if (now < activity.startAt.getTime() || now > activity.endAt.getTime()) {
       throw new Error("活动未开始或已结束");
+    }
+
+    // C.6.5：每日 / 活动期总次数上限（0 表示不限）
+    if (activity.totalDrawLimit > 0) {
+      const total = await tx.drawRecord.count({ where: { customerId } });
+      if (total >= activity.totalDrawLimit) {
+        throw new Error(`本次活动最多抽奖 ${activity.totalDrawLimit} 次`);
+      }
+    }
+    if (activity.dailyDrawLimit > 0) {
+      const today = await tx.drawRecord.count({
+        where: { customerId, createdAt: { gte: shanghaiDayStart(new Date(now)) } },
+      });
+      if (today >= activity.dailyDrawLimit) {
+        throw new Error(`今日抽奖次数已用完，明天再来试试`);
+      }
     }
 
     const prizes = await tx.prize.findMany({

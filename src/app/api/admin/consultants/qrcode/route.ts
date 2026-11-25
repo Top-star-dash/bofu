@@ -1,0 +1,30 @@
+import QRCode from "qrcode";
+import { guardApi } from "@/lib/admin-guard";
+import { resolveBaseUrl } from "@/lib/wechat";
+
+/** E.2.6 顾问推广二维码：直接返回 SVG，便于右键/另存为图片 */
+export async function GET(request: Request) {
+  const guard = await guardApi("consultants");
+  if (guard.error) return guard.error;
+
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code")?.trim();
+  if (!code || !/^[A-Za-z0-9_-]{1,32}$/.test(code)) {
+    return new Response("缺少有效的分享码", { status: 400 });
+  }
+
+  const link = `${resolveBaseUrl(request)}/?c=${encodeURIComponent(code)}`;
+  const svg = await QRCode.toString(link, {
+    type: "svg",
+    margin: 1,
+    width: 320,
+    errorCorrectionLevel: "M",
+  });
+
+  return new Response(svg, {
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "private, max-age=600",
+    },
+  });
+}

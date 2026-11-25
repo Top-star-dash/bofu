@@ -408,6 +408,14 @@ button {
   text-decoration: underline;
 }
 
+/* C.4.1 转盘下方可见提示 */
+.draw-hint {
+  margin: 0 0 8px;
+  color: #ffe7bc;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
 .rich-rule {
   padding: 16px;
   border: 1px solid #ffd16b;
@@ -735,24 +743,6 @@ button {
   color: var(--red);
 }
 
-.page-footer {
-  padding: 22px 14px;
-  color: #ffe7c3;
-  background: #8f281f;
-  text-align: center;
-}
-
-.page-footer img {
-  width: 190px;
-  height: 56px;
-  object-fit: contain;
-}
-
-.page-footer p {
-  line-height: 1.8;
-  font-size: 12px;
-}
-
 .bottom-dock {
   position: relative;
   z-index: 5;
@@ -801,7 +791,8 @@ button {
   position: absolute;
   z-index: 2;
   left: 12px;
-  bottom: calc(100% + 5px);
+  /* C.5.1 上移到波浪之外：浪高 20px，留 2px 呼吸位 */
+  bottom: calc(100% + 22px);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1382,38 +1373,8 @@ button {
   transform: translateX(-50%);
 }
 
-.wheel-plate {
-  transition: transform 3.2s cubic-bezier(0.16, 0.84, 0.2, 1);
-  will-change: transform;
-}
-
-.image-draw.is-spinning .wheel-plate {
-  filter: drop-shadow(0 0 18px #ffd166aa);
-}
-
 .image-draw:disabled {
   cursor: progress;
-}
-
-.draw-info .is-spinning-text {
-  color: var(--gold);
-  animation: draw-blink 0.9s ease-in-out infinite;
-}
-
-@keyframes draw-blink {
-  50% {
-    opacity: 0.55;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wheel-plate {
-    transition: none;
-  }
-
-  .draw-info .is-spinning-text {
-    animation: none;
-  }
 }
 
 /* ===== 中奖记录 ===== */
@@ -1710,4 +1671,200 @@ button {
 .admin-table td .admin-btn {
   padding: 6px 10px;
   font-size: 12px;
+}
+
+/* ===== H5 增补：地图占位 / 亮点 / 助力链接 / 现场核销 ===== */
+.contact-row .contact-static {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: 12px;
+  background: #fffaf3;
+  text-align: left;
+}
+
+.contact-row .contact-static > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  background: #e6a86a;
+  font-size: 18px;
+}
+
+.contact-row .contact-static small,
+.contact-row .contact-static strong,
+.contact-row .contact-static em {
+  display: block;
+}
+
+.contact-row .contact-static small,
+.contact-row .contact-static em {
+  color: #9b7d64;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.contact-row .contact-static strong {
+  color: #6b2b23;
+  font-size: 13px;
+}
+
+.online-entry {
+  padding: 0;
+  overflow: hidden;
+}
+
+.online-entry a {
+  display: block;
+  padding: 14px;
+  color: #8f281f;
+  background: #ffe6b8;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.highlight-list {
+  display: grid;
+  gap: 10px;
+}
+
+.highlight-list article {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+  background: #fff7e8;
+}
+
+.highlight-list img {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.highlight-list strong {
+  display: block;
+  color: #8f281f;
+  font-size: 14px;
+}
+
+.highlight-list p {
+  margin: 4px 0 0;
+  color: #7a5c48;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.assist-progress {
+  margin: 10px 0 6px;
+  color: #6b2b23;
+  font-size: 13px;
+}
+
+.assist-progress b {
+  color: #b83224;
+  font-size: 16px;
+}
+
+.share-link {
+  display: flex;
+  gap: 8px;
+}
+
+.share-link input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e4c69f;
+  border-radius: 8px;
+  background: #fffaf3;
+  font-size: 12px;
+}
+
+.share-link button {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background: #b83224;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.assist-hint {
+  margin: 8px 0 0;
+  color: #8a6c5b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.rules-rich {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e0c9ae;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.redeem-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.redeem-inline input {
+  flex: 1 0 100%;
+  padding: 9px 11px;
+  border: 1px solid #e4c69f;
+  border-radius: 8px;
+  background: #fffaf3;
+  font-size: 13px;
+}
+
+.redeem-inline button {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  color: white;
+  background: #b83224;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.redeem-inline button:disabled {
+  opacity: 0.6;
+}
+
+.redeem-inline .link-button {
+  color: #8a6c5b;
+  background: transparent;
+}
+
+.redeem-inline .error-text {
+  flex: 1 0 100%;
+  font-style: normal;
+}
+
+.redeem-start {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border: 1px solid #e0a86a;
+  border-radius: 999px;
+  color: #8f281f;
+  background: white;
+  font-size: 12px;
+  font-weight: 700;
 }

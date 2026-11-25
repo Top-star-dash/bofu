@@ -1,7 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { ActivityClient, CustomerClient, ModalKind } from "./types";
+import WechatShare from "./WechatShare";
+import { useStayTracking } from "./useStayTracking";
+import { safeHttpUrl, safeMediaUrl } from "@/lib/urls";
 
 type Props = {
   shareCode?: string;
@@ -12,9 +15,6 @@ type Props = {
   authErrorReason?: string | null;
   inWechat?: boolean;
 };
-
-const SPIN_DURATION_MS = 3200;
-const SPIN_TURNS = 5;
 
 const REDEEM_LABELS: Record<string, string> = {
   PENDING: "待核销",
@@ -55,12 +55,17 @@ export default function ActivityPage({
   const [posterSeconds, setPosterSeconds] = useState(5);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ text: string; type: "error" | "info" } | null>(
-    null,
+    () =>
+      authErrorReason
+        ? { text: AUTH_ERROR_TEXT[authErrorReason] || AUTH_ERROR_TEXT.unknown, type: "info" }
+        : null,
   );
   const [drawing, setDrawing] = useState(false);
-  const [spinning, setSpinning] = useState(false);
-  const [wheelAngle, setWheelAngle] = useState(0);
-  const angleRef = useRef(0);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [redeemTarget, setRedeemTarget] = useState<string | null>(null);
+  const [redeemPassword, setRedeemPassword] = useState("");
+  const [redeemBusy, setRedeemBusy] = useState(false);
+  const [redeemError, setRedeemError] = useState("");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const posterRef = useRef<HTMLDialogElement>(null);
 
@@ -128,14 +133,6 @@ export default function ActivityPage({
     };
   }, [poster, activity]);
 
-  useEffect(() => {
-    if (!authErrorReason) return;
-    showToast(
-      AUTH_ERROR_TEXT[authErrorReason] || AUTH_ERROR_TEXT.unknown,
-      "info",
-    );
-  }, [authErrorReason]);
-
   function wechatAuthHref() {
     const query = new URLSearchParams({ r: "/" });
     if (shareCode) query.set("c", shareCode);
@@ -188,19 +185,6 @@ export default function ActivityPage({
     showToast("留资成功，已获得抽奖机会", "info");
   }
 
-  function startSpin() {
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // 落点固定在 360° 整数倍：转盘图是合成图，停住时保持正向，不歪斜
-    const next =
-      (Math.round(angleRef.current / 360) + SPIN_TURNS) * 360;
-    angleRef.current = next;
-    setWheelAngle(next);
-    setSpinning(true);
-    return reduceMotion ? 0 : SPIN_DURATION_MS;
-  }
-
   async function draw() {
     if (!activity || drawing) return;
     if (activity.status !== "RUNNING") {
@@ -221,8 +205,6 @@ export default function ActivityPage({
     }
 
     setDrawing(true);
-    const spinMs = startSpin();
-    const startedAt = Date.now();
 
     let data: {
       message?: string;
@@ -247,12 +229,6 @@ export default function ActivityPage({
       data = { message: "网络异常，请稍后重试" };
     }
 
-    // 转盘至少转满一圈时长，避免接口秒回导致动效闪断
-    const elapsed = Date.now() - startedAt;
-    if (elapsed < spinMs) {
-      await new Promise((resolve) => window.setTimeout(resolve, spinMs - elapsed));
-    }
-    setSpinning(false);
     setDrawing(false);
 
     if (!ok || !data?.result) {
@@ -302,6 +278,80 @@ export default function ActivityPage({
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    if (!shareCopied) return;
+    const timer = window.setTimeout(() => setShareCopied(false), 2400);
+    return () => window.clearTimeout(timer);
+  }, [shareCopied]);
+
+  // G.4：客户身份就绪后开始统计板块停留
+  useStayTracking(Boolean(customer));
+
+  // C.2.1：助力链接带邀请人 id 与顾问分享码
+  const shareUrl = useMemo(() => {
+    if (!customer || typeof window === "undefined") return "";
+    const query = new URLSearchParams({ i: customer.id });
+    const code = activity?.consultant?.shareCode;
+    if (code) query.set("c", code);
+    return `${window.location.origin}/?${query.toString()}`;
+  }, [customer, activity?.consultant?.shareCode]);
+
+  async function copyShareLink() {
+    if (!customer) {
+      setModal("auth");
+      return;
+    }
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      showToast("助力链接已复制，发给好友即可", "info");
+    } catch {
+      showToast(`复制失败，请长按选择：${shareUrl}`);
+    }
+  }
+
+  /** C.6.1 客户手机现场核销：由工作人员输入核销密码 */
+  async function submitRedeem(code: string) {
+    if (!redeemPassword.trim()) {
+      setRedeemError("请输入核销密码");
+      return;
+    }
+    setRedeemBusy(true);
+    setRedeemError("");
+    try {
+      const response = await fetch("/api/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ redeemCode: code, password: redeemPassword }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setRedeemError(data.message || "核销失败");
+        return;
+      }
+      setCustomer((prev) =>
+        prev
+          ? {
+              ...prev,
+              prizes: prev.prizes.map((item) =>
+                item.redeemCode === code
+                  ? { ...item, redeemStatus: data.redeemStatus || "REDEEMED" }
+                  : item,
+              ),
+            }
+          : prev,
+      );
+      setRedeemTarget(null);
+      setRedeemPassword("");
+      showToast("核销成功，请向工作人员领取礼品", "info");
+    } catch {
+      setRedeemError("网络异常，请稍后重试");
+    } finally {
+      setRedeemBusy(false);
+    }
+  }
+
   if (loading) {
     return <main className="activity-page loading-page">活动加载中…</main>;
   }
@@ -318,10 +368,42 @@ export default function ActivityPage({
   const firstPrize = activity.prizes[0];
   const otherPrizes = activity.prizes.slice(1);
   const tel = `tel:${activity.phone.replace(/-/g, "")}`;
+  const mapUrl = safeHttpUrl(activity.mapUrl);
+  const externalUrl = safeHttpUrl(activity.externalUrl);
+  const logoUrl = safeMediaUrl(activity.logoUrl) || "/activity/logo-future.png";
+  const logoSubUrl =
+    safeMediaUrl(activity.logoSubUrl) || "/activity/logo-fumei-big.png";
+  const wheelUrl =
+    safeMediaUrl(activity.wheelImageUrl) || "/activity/大圆盘2.png";
+  const posterUrl = safeMediaUrl(activity.posterUrl) || "/activity/kv-popup.jpg";
+  const shareTitle =
+    activity.shareTitle ||
+    activity.title.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  const shareCover =
+    safeMediaUrl(activity.shareCoverUrl) || posterUrl;
+  const drawHint =
+    activity.status !== "RUNNING"
+      ? ""
+      : !customer
+        ? "点击转盘，先完成微信授权"
+        : !customer.hasLead
+          ? "点击转盘，留资后即可抽奖"
+          : customer.drawChance > 0
+            ? "点击转盘，立即抽奖"
+            : "次数已用完，邀请好友再得机会";
 
   return (
     // 内容区域
     <main className="activity-page">
+      {inWechat && shareUrl ? (
+        <WechatShare
+          enabled
+          link={shareUrl}
+          title={shareTitle}
+          desc={activity.shareDesc || "参与线上抽奖，丰厚惊喜好礼等你来解锁"}
+          cover={shareCover}
+        />
+      ) : null}
       {/* 背景图片 */}
       <div
         className="page-background"
@@ -336,8 +418,8 @@ export default function ActivityPage({
       <header className="page-top">
         <div className="brand-area">
           <div className="logo-line">
-            <img src="/activity/logo-future.png" alt="未来社区" />
-            <img src="/activity/logo-fumei.png" alt="博富·福美城" />
+            <img src={logoUrl} alt="未来社区" />
+            <img src={logoSubUrl} alt="博富·福美城" />
           </div>
           <div className="action-line">
             <button type="button" onClick={() => requireAuth("prizes")}>
@@ -394,35 +476,29 @@ export default function ActivityPage({
           )}
         </div>
         {/* 抽奖区域 */}
-        <div className="draw-area" id="draw-area">
+        <div className="draw-area" id="draw-area" data-stay="draw">
           <button
-            className={`image-draw${spinning ? " is-spinning" : ""}`}
+            className="image-draw"
             type="button"
             onClick={draw}
             aria-label="点击转盘抽奖"
-            aria-busy={spinning}
+            aria-busy={drawing}
             disabled={drawing}
           >
             <span className="wheel-stage">
               <span className="wheel-pointer" aria-hidden="true" />
-              <span
-                className="wheel-plate"
-                style={{ transform: `rotate(${wheelAngle}deg)` }}
-              >
+              <span className="wheel-plate">
                 {/* 转盘图片 */}
-                <img
-                  src={activity.wheelImageUrl || "/activity/大圆盘2.png"}
-                  alt="点击转盘抽奖"
-                />
+                <img src={wheelUrl} alt="点击转盘抽奖" />
               </span>
             </span>
           </button>
+          {/* C.4.1 可见的抽奖引导，不再只靠 aria-label */}
+          {drawHint ? <p className="draw-hint">{drawHint}</p> : null}
           {/* 抽奖信息 */}
           <div className="draw-info">
             {/* 活动进行中：显示剩余抽奖次数 */}
-            {spinning ? (
-              <strong className="is-spinning-text">好运正在开启…</strong>
-            ) : activity.status === "RUNNING" ? (
+            {activity.status === "RUNNING" ? (
               <strong>当前剩余抽奖次数：{customer?.drawChance ?? 0} 次</strong>
             ) : (
               <strong>
@@ -438,7 +514,7 @@ export default function ActivityPage({
       </section>
 
       <div className="card-stack">
-        <section className="content-card rich-rule">
+        <section className="content-card rich-rule" data-stay="rules">
           <h2>活动规则</h2>
           <div
             style={activity.rulesColor ? { color: activity.rulesColor } : undefined}
@@ -485,7 +561,7 @@ export default function ActivityPage({
           </section>
         )}
 
-        <section className="content-card prize-section" aria-labelledby="prizes-title">
+        <section className="content-card prize-section" aria-labelledby="prizes-title" data-stay="prizes">
           <div className="section-heading">
             <span>奖品展示</span>
             <h2 id="prizes-title">幸运好礼，100%中奖</h2>
@@ -527,17 +603,64 @@ export default function ActivityPage({
               <em>点击拨打</em>
             </div>
           </a>
-          <a href={activity.mapUrl || "#map"}>
-            <span>⌖</span>
-            <div>
-              <small>领奖地址</small>
-              <strong>{activity.address}</strong>
-              <em>打开地图导航</em>
+          {/* C.1：没有配置合法地图链接时不再链到假锚点 #map */}
+          {mapUrl ? (
+            <a href={mapUrl} target="_blank" rel="noreferrer">
+              <span>⌖</span>
+              <div>
+                <small>领奖地址</small>
+                <strong>{activity.address}</strong>
+                <em>打开地图导航</em>
+              </div>
+            </a>
+          ) : (
+            <div className="contact-static">
+              <span>⌖</span>
+              <div>
+                <small>领奖地址</small>
+                <strong>{activity.address}</strong>
+                <em>导航请咨询专属顾问</em>
+              </div>
             </div>
-          </a>
+          )}
         </section>
 
-        <section className="content-card property-section" aria-labelledby="property-title">
+        {/* C.6.2 线上售楼部：后台配置了合法外链才出现 */}
+        {externalUrl && (
+          <section className="content-card online-entry">
+            <a href={externalUrl} target="_blank" rel="noreferrer">
+              进入线上售楼部 →
+            </a>
+          </section>
+        )}
+
+        {/* C.6.4 亮点区：优惠 / 区位 / 户型 */}
+        {activity.highlightAssets.length > 0 && (
+          <section
+            className="content-card highlight-section"
+            aria-labelledby="highlight-title"
+          >
+            <div className="section-heading">
+              <span>项目亮点</span>
+              <h2 id="highlight-title">为什么选择福美城</h2>
+            </div>
+            <div className="highlight-list">
+              {activity.highlightAssets.map((asset) => (
+                <article key={asset.id}>
+                  {asset.imageUrl ? (
+                    <img src={asset.imageUrl} alt={asset.title || "项目亮点"} loading="lazy" />
+                  ) : null}
+                  <div>
+                    <strong>{asset.title}</strong>
+                    <p>{asset.subtitle}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="content-card property-section" aria-labelledby="property-title" data-stay="property">
           <div className="section-heading">
             <span>楼盘社区</span>
             <h2 id="property-title">城芯生活，住进福美</h2>
@@ -564,15 +687,6 @@ export default function ActivityPage({
             参与量 <b>{activity.participateCount.toLocaleString()}</b>
           </strong>
         </section>
-
-        <footer className="content-card page-footer">
-          <img src="/activity/logo-fumei.png" alt="博富·福美城" />
-          <p>
-            {activity.address}
-            <br />
-            咨询热线：{activity.phone}
-          </p>
-        </footer>
       </div>
       </div>
 
@@ -632,10 +746,7 @@ export default function ActivityPage({
               >
                 ×
               </button>
-              <img
-                src={activity.posterUrl || "/activity/kv-popup.jpg"}
-                alt="博富·福美城活动海报"
-              />
+              <img src={posterUrl} alt="博富·福美城活动海报" />
             </div>
             <small>海报将在 {posterSeconds} 秒后自动关闭</small>
           </div>
@@ -740,15 +851,35 @@ export default function ActivityPage({
                 <span>好友助力</span>
                 <h2 id="modal-title">邀请好友，再得抽奖机会</h2>
                 <p>
-                  分享活动给好友，好友完成有效留资后，你可增加 1
-                  次抽奖机会，单人最多增加 3 次。
+                  分享活动给好友，好友完成有效留资后，你可增加{" "}
+                  {activity.assistChance} 次抽奖机会，单人最多增加{" "}
+                  {activity.assistMaxExtra} 次。
                 </p>
+                {customer ? (
+                  <>
+                    <p className="assist-progress">
+                      已获得 <b>{customer.assistGained}</b> /{" "}
+                      {activity.assistMaxExtra} 次助力
+                    </p>
+                    <div className="share-link">
+                      <input readOnly value={shareUrl} aria-label="助力链接" />
+                      <button type="button" onClick={copyShareLink}>
+                        {shareCopied ? "已复制" : "复制链接"}
+                      </button>
+                    </div>
+                    <p className="assist-hint">
+                      好友通过此链接进入并完成留资，次数自动到账；重新进入本页即可看到最新次数。
+                    </p>
+                  </>
+                ) : (
+                  <p className="assist-hint">完成微信授权后可生成专属助力链接。</p>
+                )}
                 <button
                   className="submit-button"
                   type="button"
-                  onClick={() => setModal(null)}
+                  onClick={() => (customer ? setModal(null) : setModal("auth"))}
                 >
-                  我知道了
+                  {customer ? "我知道了" : "去授权"}
                 </button>
               </>
             )}
@@ -761,17 +892,38 @@ export default function ActivityPage({
                   dangerouslySetInnerHTML={{ __html: activity.title }}
                 />
                 <ol>
-                  <li>每位客户首次进入并完成留资后免费抽奖 1 次。</li>
-                  <li>每邀请 1 位好友完成有效留资，增加 1 次机会，最多 3 次。</li>
+                  <li>
+                    每位客户首次进入并完成留资后免费抽奖{" "}
+                    {activity.firstDrawChance} 次。
+                  </li>
+                  <li>
+                    每邀请 1 位好友完成有效留资，增加{" "}
+                    {activity.assistChance} 次机会，最多 {activity.assistMaxExtra}{" "}
+                    次。
+                  </li>
+                  {activity.dailyDrawLimit > 0 && (
+                    <li>每位客户每日最多抽奖 {activity.dailyDrawLimit} 次。</li>
+                  )}
+                  {activity.totalDrawLimit > 0 && (
+                    <li>活动期间每位客户最多抽奖 {activity.totalDrawLimit} 次。</li>
+                  )}
                   <li>礼品数量有限，先到先得，领完即止。</li>
                   <li>
-                    领取截止至 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}
+                    领取截止至{" "}
+                    {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}
                     ，逾期视为自动放弃。
                   </li>
                   <li>
-                    领奖地址：{activity.address}，核销密码：6666。
+                    领奖地址：{activity.address}，到店后由工作人员现场核销。
                   </li>
                 </ol>
+                {activity.rulesHtml ? (
+                  <div
+                    className="rules-rich"
+                    style={activity.rulesColor ? { color: activity.rulesColor } : undefined}
+                    dangerouslySetInnerHTML={{ __html: activity.rulesHtml }}
+                  />
+                ) : null}
               </>
             )}
 
@@ -823,6 +975,58 @@ export default function ActivityPage({
                             <p className="redeem-tip">
                               到访请出示核销码，现场核销后失效
                             </p>
+                          )}
+                          {/* C.6.1 客户侧现场核销：工作人员在本机输入核销密码 */}
+                          {item.isWin && item.redeemStatus === "PENDING" && (
+                            redeemTarget === item.redeemCode ? (
+                              <form
+                                className="redeem-inline"
+                                onSubmit={(event) => {
+                                  event.preventDefault();
+                                  void submitRedeem(item.redeemCode);
+                                }}
+                              >
+                                <input
+                                  value={redeemPassword}
+                                  onChange={(event) =>
+                                    setRedeemPassword(event.target.value)
+                                  }
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                  maxLength={12}
+                                  placeholder="工作人员输入核销密码"
+                                  aria-label="核销密码"
+                                />
+                                <button type="submit" disabled={redeemBusy}>
+                                  {redeemBusy ? "核销中…" : "确认核销"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="link-button"
+                                  onClick={() => {
+                                    setRedeemTarget(null);
+                                    setRedeemError("");
+                                  }}
+                                >
+                                  取消
+                                </button>
+                                {redeemError ? (
+                                  <em className="error-text">{redeemError}</em>
+                                ) : null}
+                              </form>
+                            ) : (
+                              <button
+                                type="button"
+                                className="redeem-start"
+                                onClick={() => {
+                                  setRedeemTarget(item.redeemCode);
+                                  setRedeemPassword("");
+                                  setRedeemError("");
+                                }}
+                              >
+                                现场核销
+                              </button>
+                            )
                           )}
                         </li>
                       );

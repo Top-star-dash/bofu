@@ -49,10 +49,32 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
   }
 }
 
+/**
+ * 邀请关系校验：必须同活动、不能是自己、不能是「我邀请的人反过来邀请我」。
+ * 上层（bootstrap）只负责传原始 inviterId，这里统一兜底。
+ */
+async function resolveInviterId(
+  activityId: string,
+  inviterId: string | null | undefined,
+  selfId?: string | null,
+) {
+  if (!inviterId) return null;
+  const inviter = await prisma.customer.findUnique({
+    where: { id: inviterId },
+    select: { id: true, activityId: true, inviterId: true },
+  });
+  if (!inviter || inviter.activityId !== activityId) return null;
+  if (selfId && inviter.id === selfId) return null;
+  if (selfId && inviter.inviterId === selfId) return null;
+  return inviter.id;
+}
+
 export async function ensureCustomer(params: {
   activityId: string;
   openid: string;
   consultantId?: string | null;
+  /** 允许覆盖已锁定的默认顾问（自然访问先锁默认、首位销售链接可接管） */
+  forceConsultantId?: string | null;
   inviterId?: string | null;
   nickname?: string | null;
   avatarUrl?: string | null;
@@ -68,11 +90,21 @@ export async function ensureCustomer(params: {
   });
 
   if (existing) {
+    // C.2.2：邀请关系只在为空时写入，首次锁定后不再改
+    const inviterId =
+      existing.inviterId ||
+      (await resolveInviterId(params.activityId, params.inviterId, existing.id));
+
     await prisma.customer.update({
       where: { id: existing.id },
       data: {
         lastActiveAt: new Date(),
-        consultantId: existing.consultantId || params.consultantId || undefined,
+        consultantId:
+          params.forceConsultantId?.trim() ||
+          existing.consultantId ||
+          params.consultantId ||
+          undefined,
+        inviterId: inviterId || undefined,
         nickname: params.nickname || existing.nickname,
         avatarUrl: params.avatarUrl || existing.avatarUrl,
       },
@@ -88,7 +120,9 @@ export async function ensureCustomer(params: {
       activityId: params.activityId,
       openid: params.openid,
       consultantId: params.consultantId || undefined,
-      inviterId: params.inviterId || undefined,
+      inviterId:
+        (await resolveInviterId(params.activityId, params.inviterId)) ||
+        undefined,
       nickname: params.nickname || undefined,
       avatarUrl: params.avatarUrl || undefined,
       drawChance: 0,

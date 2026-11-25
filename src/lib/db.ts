@@ -1,4 +1,4 @@
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "@/generated/prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
@@ -11,7 +11,7 @@ function createPrismaClient() {
     throw new Error("DATABASE_URL is missing");
   }
 
-  const adapter = new PrismaPg({ connectionString });
+  const adapter = new PrismaMariaDb(connectionString);
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],

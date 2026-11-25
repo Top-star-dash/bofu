@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 enum AdminStatus {
@@ -77,17 +77,29 @@ model Activity {
   phone           String         @default("0750-5236666")
   address         String         @default("博富·福美城冠军薈")
   mapUrl          String?
+  /** 线上售楼部外链，空则前端不展示入口 */
+  externalUrl     String?
   shareTitle      String?
   shareDesc       String?
   shareCoverUrl   String?
   posterUrl       String?
   backgroundUrl   String?
   wheelImageUrl   String?
+  /** 顶栏 Logo，空则用内置品牌图 */
+  logoUrl         String?
+  logoSubUrl      String?
   rulesHtml       String?
   rulesColor      String?
   firstDrawChance Int            @default(1)
   assistChance    Int            @default(1)
   assistMaxExtra  Int            @default(3)
+  /** 单客户每日抽奖上限，0 表示不限 */
+  dailyDrawLimit  Int            @default(0)
+  /** 单客户活动期内抽奖总上限，0 表示不限 */
+  totalDrawLimit  Int            @default(0)
+  /** 分层规则：停留秒数达到 A/B 阈值（A 为最高意向） */
+  tierAStaySec    Int            @default(300)
+  tierBStaySec    Int            @default(60)
   exposureCount   Int            @default(0)
   participateCount Int           @default(0)
   createdAt       DateTime       @default(now())
@@ -152,6 +164,8 @@ model Consultant {
   qrcodeUrl   String?
   intro       String?
   message     String?
+  /** 顾问本人微信 OpenID，用于过滤销售自点，避免虚增曝光 */
+  openid      String?
   shareCode   String   @unique
   isDefault   Boolean  @default(false)
   enabled     Boolean  @default(true)
@@ -175,6 +189,8 @@ model Customer {
   inviterId       String?
   firstEnterAt    DateTime  @default(now())
   lastActiveAt    DateTime  @default(now())
+  /** 最近一次计入曝光的时间，用于按天去重 */
+  lastExposureAt  DateTime?
   propertyStaySec Int       @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

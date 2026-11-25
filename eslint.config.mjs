@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // pm2 运行时配置（CommonJS，不在 Next 构建范围内）
+    "ecosystem.config.cjs",
   ]),
 ]);
 

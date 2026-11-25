@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentActivity } from "@/lib/activity";
 import { getCustomerSession } from "@/lib/customer-session";
 import { prisma } from "@/lib/db";
+import { computeLeadTier } from "@/lib/lead-tier";
 
 const schema = z.object({
   name: z.string().min(1).max(32),
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
           visitDate: parsed.data.visitDate
             ? new Date(parsed.data.visitDate)
             : null,
-          tier: "B",
+          tier: computeLeadTier(customer.propertyStaySec, activity),
         },
       });
 

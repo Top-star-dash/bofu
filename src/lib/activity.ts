@@ -61,6 +61,33 @@ export async function findConsultantByCode(activityId: string, code?: string | n
   });
 }
 
+/** 只按分享码精确匹配，不回落默认顾问：用于区分「销售链接」与「自然访问」 */
+export async function findConsultantByShareCode(
+  activityId: string,
+  code?: string | null,
+) {
+  if (!code) return null;
+  return prisma.consultant.findFirst({
+    where: { activityId, shareCode: code, enabled: true },
+  });
+}
+
+export async function findConsultantById(
+  activityId: string,
+  id?: string | null,
+) {
+  if (!id) return null;
+  return prisma.consultant.findFirst({
+    where: { id, activityId, enabled: true },
+  });
+}
+
+export function findDefaultConsultant(activityId: string) {
+  return prisma.consultant.findFirst({
+    where: { activityId, isDefault: true, enabled: true },
+  });
+}
+
 export function serializeActivityForClient(
   activity: NonNullable<Awaited<ReturnType<typeof getCurrentActivity>>>,
   consultant: Awaited<ReturnType<typeof findConsultantByCode>>,
@@ -80,11 +107,22 @@ export function serializeActivityForClient(
     phone: activity.phone,
     address: activity.address,
     mapUrl: activity.mapUrl,
+    externalUrl: activity.externalUrl,
+    shareTitle: activity.shareTitle,
+    shareDesc: activity.shareDesc,
+    shareCoverUrl: activity.shareCoverUrl,
     posterUrl: activity.posterUrl,
     backgroundUrl: activity.backgroundUrl,
     wheelImageUrl: activity.wheelImageUrl,
+    logoUrl: activity.logoUrl,
+    logoSubUrl: activity.logoSubUrl,
     rulesHtml: activity.rulesHtml,
     rulesColor: activity.rulesColor,
+    firstDrawChance: activity.firstDrawChance,
+    assistChance: activity.assistChance,
+    assistMaxExtra: activity.assistMaxExtra,
+    dailyDrawLimit: activity.dailyDrawLimit,
+    totalDrawLimit: activity.totalDrawLimit,
     exposureCount: activity.exposureCount,
     participateCount: activity.participateCount,
     notices: activity.notices.map((item) => item.content),

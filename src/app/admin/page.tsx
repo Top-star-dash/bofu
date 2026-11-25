@@ -1,7 +1,9 @@
 ﻿export const instant = false;
 
 import { redirect } from "next/navigation";
-import AdminShell from "@/components/admin/AdminShell";
+import Link from "next/link";
+import AdminShell, { firstAllowedHref } from "@/components/admin/AdminShell";
+import { canUse } from "@/lib/admin-guard";
 import { getCurrentActivity } from "@/lib/activity";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -9,6 +11,17 @@ import { prisma } from "@/lib/db";
 export default async function AdminHomePage() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
+
+  if (!canUse(session, "stats")) {
+    const target = firstAllowedHref(session);
+    if (target) redirect(target);
+    return (
+      <AdminShell session={session} current="/admin">
+        <h2 style={{ marginTop: 0 }}>暂无访问权限</h2>
+        <p>当前账号未分配数据概览权限，请联系超级管理员。</p>
+      </AdminShell>
+    );
+  }
 
   const activity = await getCurrentActivity();
   const [leadCount, drawCount, winCount, userCount] = await Promise.all([
@@ -62,6 +75,11 @@ export default async function AdminHomePage() {
         ) : (
           <p>尚未配置活动</p>
         )}
+        <p>
+          <Link className="admin-btn secondary" href="/admin/stats">
+            查看销售转化看板
+          </Link>
+        </p>
       </div>
     </AdminShell>
   );

@@ -142,6 +142,7 @@ export default async function AdminLeadsPage({
               <th>顾问</th>
               <th>分层</th>
               <th>留资时间</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -159,11 +160,14 @@ export default async function AdminLeadsPage({
                 <td>{lead.consultant?.name || "-"}</td>
                 <td>{lead.tier}</td>
                 <td>{lead.createdAt.toLocaleString("zh-CN")}</td>
+                <td>
+                  <Link href={`/admin/leads/${lead.id}`}>详情</Link>
+                </td>
               </tr>
             ))}
             {!leads.length && (
               <tr>
-                <td colSpan={8}>没有匹配的线索</td>
+                <td colSpan={9}>没有匹配的线索</td>
               </tr>
             )}
           </tbody>
