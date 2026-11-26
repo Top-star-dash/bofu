@@ -1507,8 +1507,20 @@ export default function ActivityPage({
                   <p>{consultant.message || consultant.intro}</p>
                   <strong>{consultant.phone}</strong>
                   <a
-                    className="submit-button"
                     href={`tel:${consultant.phone.replace(/-/g, "")}`}
+                    style={{
+                      display: "block",
+                      width: "50%",
+                      margin: "14px auto 0",
+                      padding: 12,
+                      border: 0,
+                      borderRadius: 20,
+                      color: "white",
+                      background: "var(--red)",
+                      textAlign: "center",
+                      textDecoration: "none",
+                      fontWeight: 800,
+                    }}
                   >
                     拨打电话
                   </a>

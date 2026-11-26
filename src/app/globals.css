@@ -1172,11 +1172,6 @@ button {
   font-size: 18px;
 }
 
-.consultant-modal .submit-button {
-  width: 50%;
-  margin-inline: auto;
-}
-
 .consultant-modal small {
   color: var(--muted);
 }
