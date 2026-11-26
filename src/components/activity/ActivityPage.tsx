@@ -1223,7 +1223,7 @@ export default function ActivityPage({
                           lastDraw.redeemStatus === "PENDING" && (
                             <button
                               type="button"
-                              className="redeem-qr-toggle"
+                              className="redeem-badge redeem-pending redeem-qr-toggle"
                               aria-expanded={qrOpenCode === lastDraw.redeemCode}
                               onClick={() =>
                                 setQrOpenCode((prev) =>
@@ -1381,7 +1381,7 @@ export default function ActivityPage({
                                 item.redeemStatus === "PENDING" && (
                                   <button
                                     type="button"
-                                    className="redeem-qr-toggle"
+                                    className="redeem-badge redeem-pending redeem-qr-toggle"
                                     aria-expanded={
                                       qrOpenCode === item.redeemCode
                                     }
