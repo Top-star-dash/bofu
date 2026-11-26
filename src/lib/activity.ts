@@ -115,6 +115,7 @@ export function serializeActivityForClient(
     shareCoverUrl:
       normalizeMediaUrl(activity.shareCoverUrl) ?? activity.shareCoverUrl,
     posterUrl: normalizeMediaUrl(activity.posterUrl) ?? activity.posterUrl,
+    posterSuppressHours: activity.posterSuppressHours,
     backgroundUrl:
       normalizeMediaUrl(activity.backgroundUrl) ?? activity.backgroundUrl,
     wheelImageUrl:

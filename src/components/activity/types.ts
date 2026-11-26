@@ -17,6 +17,8 @@ export type ActivityClient = {
   shareDesc: string | null;
   shareCoverUrl: string | null;
   posterUrl: string | null;
+  /** 距上次访问未超过该小时数则不再弹海报；0=每次都弹 */
+  posterSuppressHours: number;
   backgroundUrl: string | null;
   wheelImageUrl: string | null;
   logoUrl: string | null;

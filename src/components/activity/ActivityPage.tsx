@@ -42,6 +42,25 @@ function formatDateTime(value: string) {
   return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日 ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+/** 本机上次访问时间；距今未超过 suppressHours 则不再弹海报（0=每次都弹） */
+function shouldShowPoster(activityId: string, suppressHours: number) {
+  const visitKey = `activity_visit_at:${activityId}`;
+  const checkedKey = `poster_checked:${activityId}`;
+  try {
+    // 同一次页面会话只判定一次（避免 Strict Mode 双跑把刚写入的时间当成「已访问」）
+    if (sessionStorage.getItem(checkedKey)) return false;
+    sessionStorage.setItem(checkedKey, "1");
+    const last = Number(localStorage.getItem(visitKey));
+    const now = Date.now();
+    localStorage.setItem(visitKey, String(now));
+    if (!Number.isFinite(last) || last <= 0) return true;
+    if (suppressHours <= 0) return true;
+    return now - last >= suppressHours * 3_600_000;
+  } catch {
+    return true;
+  }
+}
+
 export default function ActivityPage({
   shareCode,
   inviterId,
@@ -53,7 +72,7 @@ export default function ActivityPage({
   const [customer, setCustomer] = useState<CustomerClient | null>(null);
   const [notice, setNotice] = useState(0);
   const [modal, setModal] = useState<ModalKind>(null);
-  const [poster, setPoster] = useState(true);
+  const [poster, setPoster] = useState(false);
   const [posterSeconds, setPosterSeconds] = useState(5);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ text: string; type: "error" | "info" } | null>(
@@ -207,6 +226,17 @@ export default function ActivityPage({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [imagePreview]);
+
+  // 活动就绪后按「距上次访问」决定是否弹海报（间隔见活动配置 posterSuppressHours）
+  useEffect(() => {
+    if (!activity?.id) return;
+    if (
+      shouldShowPoster(activity.id, activity.posterSuppressHours ?? 1)
+    ) {
+      setPosterSeconds(5);
+      setPoster(true);
+    }
+  }, [activity?.id, activity?.posterSuppressHours]);
 
   useEffect(() => {
     if (!poster || !activity) return;

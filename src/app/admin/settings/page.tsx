@@ -48,6 +48,7 @@ export default async function AdminSettingsPage() {
                 shareDesc: activity.shareDesc ?? "",
                 shareCoverUrl: activity.shareCoverUrl ?? "",
                 posterUrl: activity.posterUrl ?? "",
+                posterSuppressHours: activity.posterSuppressHours,
                 backgroundUrl: activity.backgroundUrl ?? "",
                 wheelImageUrl: activity.wheelImageUrl ?? "",
                 logoUrl: activity.logoUrl ?? "",

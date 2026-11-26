@@ -24,6 +24,8 @@ export type ActivityFormData = {
   shareDesc: string;
   shareCoverUrl: string;
   posterUrl: string;
+  /** 海报再显间隔（小时），0=每次进入都弹 */
+  posterSuppressHours: number;
   backgroundUrl: string;
   wheelImageUrl: string;
   logoUrl: string;
@@ -354,6 +356,18 @@ export default function ActivitySettings({
                 value={form.posterUrl}
                 onChange={(value) => set("posterUrl", value)}
               />
+              <Field label="海报再显间隔（小时；0=每次进入都弹）">
+                <input
+                  className={inputCls}
+                  type="number"
+                  min={0}
+                  max={8760}
+                  value={form.posterSuppressHours}
+                  onChange={(event) =>
+                    setNumber("posterSuppressHours", event.target.value)
+                  }
+                />
+              </Field>
               <ImageField
                 label="背景 KV"
                 value={form.backgroundUrl}

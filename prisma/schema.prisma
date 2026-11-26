@@ -85,6 +85,8 @@ model Activity {
   shareDesc       String?
   shareCoverUrl   String?
   posterUrl       String?
+  /** 海报弹窗抑制间隔（小时）：距上次访问未超过该值则不再弹出；0=每次都弹 */
+  posterSuppressHours Int @default(1)
   backgroundUrl   String?
   wheelImageUrl   String?
   /** 顶栏 Logo，空则用内置品牌图 */
@@ -253,7 +255,7 @@ model DrawRecord {
   prizeLevel   String
   isWin        Boolean      @default(true)
   redeemStatus RedeemStatus @default(PENDING)
-  redeemCode   String       @unique @default(cuid())
+  redeemCode   String       @unique // 4~8 位纯数字，由应用层生成，便于现场口述核对
   redeemedAt   DateTime?
   redeemedBy   String?
   createdAt    DateTime     @default(now())

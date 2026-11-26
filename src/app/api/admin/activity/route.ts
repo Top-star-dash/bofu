@@ -65,6 +65,7 @@ const schema = z.object({
   shareDesc: z.string().trim().max(300).optional().nullable(),
   shareCoverUrl: optionalMedia,
   posterUrl: optionalMedia,
+  posterSuppressHours: z.number().int().min(0).max(8760).optional(),
   backgroundUrl: optionalMedia,
   wheelImageUrl: optionalMedia,
   logoUrl: optionalMedia,
