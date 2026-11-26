@@ -797,6 +797,7 @@ export default function ActivityPage({
             background: "transparent",
             border: "none",
             boxShadow: "none",
+            marginBottom: 48,
           }}
         >
           <strong>
