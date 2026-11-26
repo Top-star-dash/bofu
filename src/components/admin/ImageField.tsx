@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useState } from "react";
-import { safeMediaUrl } from "@/lib/urls";
+import PreviewableImage from "./PreviewableImage";
 
 type Props = {
   label: string;
@@ -10,7 +10,7 @@ type Props = {
   hint?: string;
 };
 
-/** 图片字段：可粘贴地址，也可直接上传到 public/uploads */
+/** 图片字段：可粘贴地址，也可直接上传到 public/uploads；缩略图可点击放大 */
 export default function ImageField({ label, value, onChange, hint }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -63,10 +63,11 @@ export default function ImageField({ label, value, onChange, hint }: Props) {
         </label>
       </div>
       {value ? (
-        <img
-          className="h-16 w-16 rounded-lg border border-[#f0e2d2] object-cover"
-          src={safeMediaUrl(value) || ""}
+        <PreviewableImage
+          src={value}
           alt={label}
+          title={label}
+          className="h-16 w-16 rounded-lg object-cover"
         />
       ) : null}
       {error ? <em className="error-text">{error}</em> : null}

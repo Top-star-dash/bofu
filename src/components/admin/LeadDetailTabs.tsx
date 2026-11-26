@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import LeadDetail from "./LeadDetail";
+import PreviewableImage from "./PreviewableImage";
 
 export type SummaryItem = { label: string; value: string };
 export type InfoItem = { label: string; value: string };
@@ -128,11 +129,12 @@ export default function LeadDetailTabs({
             <h3 className="m-0 text-[14px] font-bold">微信用户</h3>
             <div className="mt-3 flex flex-wrap items-start gap-4">
               {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <PreviewableImage
                   src={avatarUrl}
                   alt="微信头像"
-                  className="h-16 w-16 rounded-full border border-[#f0e2d2] object-cover"
+                  title="微信头像"
+                  className="h-16 w-16 rounded-full object-cover"
+                  buttonClassName="rounded-full border border-[#f0e2d2] bg-white p-0.5"
                 />
               ) : (
                 <div className="grid h-16 w-16 place-items-center rounded-full bg-[#fff2df] text-[12px] text-[#9b7d64]">

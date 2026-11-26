@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { FormEvent, useState } from "react";
+import PreviewableImage from "@/components/admin/PreviewableImage";
 
 const LOGIN_LOGOS = [
   { src: "/activity/logo-future.webp", alt: "未来社区" },
@@ -40,7 +41,14 @@ export default function AdminLoginPage() {
         <aside className="admin-login-brand" aria-label="品牌标识">
           <div className="logo-stack">
             {LOGIN_LOGOS.map((logo) => (
-              <img key={logo.src} src={logo.src} alt={logo.alt} />
+              <PreviewableImage
+                key={logo.src}
+                src={logo.src}
+                alt={logo.alt}
+                title={logo.alt}
+                className="max-h-16 w-auto object-contain"
+                buttonClassName="border-0 bg-transparent p-0"
+              />
             ))}
           </div>
           <div>

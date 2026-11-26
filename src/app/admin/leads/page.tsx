@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
+import PreviewableImage from "@/components/admin/PreviewableImage";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildLeadWhere, LEAD_TIERS } from "@/lib/lead-query";
@@ -159,11 +160,12 @@ export default async function AdminLeadsPage({
                   {lead.customer.nickname || lead.customer.avatarUrl ? (
                     <span className="inline-flex items-center gap-2">
                       {lead.customer.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <PreviewableImage
                           src={lead.customer.avatarUrl}
-                          alt=""
+                          alt={lead.customer.nickname || "微信头像"}
+                          title={lead.customer.nickname || "微信头像"}
                           className="h-7 w-7 rounded-full object-cover"
+                          buttonClassName="rounded-full border border-[#ead7c2] bg-white p-0"
                         />
                       ) : null}
                       <span>{lead.customer.nickname || "已授权"}</span>

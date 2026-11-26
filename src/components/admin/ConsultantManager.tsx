@@ -3,6 +3,7 @@
 import { FormEvent, Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageField from "./ImageField";
+import PreviewableImage from "./PreviewableImage";
 
 export type ConsultantRow = {
   id: string;
@@ -586,11 +587,12 @@ export default function ConsultantManager({
               </button>
             </div>
             <div className="mt-4 flex justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <PreviewableImage
                 src={qrSrc(qrRow.shareCode)}
                 alt={`${qrRow.name} 的推广二维码`}
-                className="h-56 w-56 rounded-xl border border-[#f0e2d2] bg-white object-contain p-2"
+                title={`${qrRow.name} 的推广二维码`}
+                className="h-56 w-56 rounded-xl object-contain p-2"
+                buttonClassName="rounded-xl border border-[#f0e2d2] bg-white"
               />
             </div>
             <p className="mt-3 break-all text-center text-[12px] text-[#8a6c5b]">

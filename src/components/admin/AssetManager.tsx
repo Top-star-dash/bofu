@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { safeMediaUrl } from "@/lib/urls";
+import PreviewableImage from "./PreviewableImage";
 
 export type AssetRow = {
   key: string;
@@ -38,7 +38,6 @@ export default function AssetManager({ initial }: { initial: AssetRow[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [preview, setPreview] = useState<AssetRow | null>(null);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   function update(key: string, patch: Partial<AssetRow>) {
@@ -171,18 +170,13 @@ export default function AssetManager({ initial }: { initial: AssetRow[] }) {
               <tr key={row.key}>
                 <td>
                   {row.imageUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => setPreview(row)}
-                      className="rounded border border-[#ead7c2] bg-white p-0.5"
-                      title="点击放大预览"
-                    >
-                      <img
-                        className="h-14 w-14 rounded object-cover"
-                        src={safeMediaUrl(row.imageUrl) || ""}
-                        alt={row.title || "素材缩略图"}
-                      />
-                    </button>
+                    <PreviewableImage
+                      src={row.imageUrl}
+                      alt={row.title || "素材缩略图"}
+                      title={row.title || "素材预览"}
+                      linkUrl={row.linkUrl || undefined}
+                      className="h-14 w-14 rounded object-cover"
+                    />
                   ) : (
                     <span className="text-[12px] text-[#9b7d64]">无图</span>
                   )}
@@ -284,45 +278,6 @@ export default function AssetManager({ initial }: { initial: AssetRow[] }) {
         </table>
       </div>
 
-      {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setPreview(null)}
-        >
-          <div
-            className="flex max-h-[92vh] max-w-[92vw] flex-col gap-3"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <img
-              className="max-h-[78vh] max-w-full rounded-lg bg-white object-contain"
-              src={safeMediaUrl(preview.imageUrl) || ""}
-              alt={preview.title || "素材预览"}
-            />
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-[13px] text-white">{preview.title || "素材预览"}</span>
-              <div className="flex gap-2">
-                {preview.linkUrl ? (
-                  <a
-                    href={preview.linkUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-lg bg-white px-3 py-1.5 text-[13px] font-bold text-[#8f281f]"
-                  >
-                    打开链接
-                  </a>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => setPreview(null)}
-                  className="rounded-lg bg-[#b83224] px-3 py-1.5 text-[13px] font-bold text-white"
-                >
-                  关闭
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
