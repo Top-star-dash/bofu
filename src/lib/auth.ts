@@ -32,8 +32,10 @@ export async function verifyPassword(password: string, passwordHash: string) {
 }
 
 export async function createAdminSession(payload: AdminSession) {
-  const token = await new SignJWT(payload as AdminJwtPayload)
+  const { sub, ...claims } = payload;
+  const token = await new SignJWT(claims as AdminJwtPayload)
     .setProtectedHeader({ alg: "HS256" })
+    .setSubject(sub)
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DAYS}d`)
     .sign(getSecret());
@@ -121,16 +123,32 @@ export async function writeOperationLog(
   action: string,
   detail?: string | null,
 ) {
+  const detailText = trimLogDetail(detail);
+  // 失效会话可能带着已删除的 userId（如重新 seed），空串/"undefined" 也当作无用户
+  const uid =
+    userId && userId !== "undefined" && userId !== "null" ? userId : null;
+
   try {
     await prisma.operationLog.create({
-      data: {
-        userId: userId || null,
-        action,
-        detail: trimLogDetail(detail),
-      },
+      data: { userId: uid, action, detail: detailText },
     });
   } catch (error) {
-    // 操作日志属旁路记录，写入失败不应影响主业务流程
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code?: string }).code)
+        : "";
+    // FK 失败时降级为匿名日志，避免刷屏且不影响保存
+    if (code === "P2003" && uid) {
+      try {
+        await prisma.operationLog.create({
+          data: { userId: null, action, detail: detailText },
+        });
+        return;
+      } catch (retryError) {
+        console.error(`[operationLog] 写入失败 action=${action}`, retryError);
+        return;
+      }
+    }
     console.error(`[operationLog] 写入失败 action=${action}`, error);
   }
 }
