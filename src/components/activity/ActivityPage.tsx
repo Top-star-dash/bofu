@@ -8,6 +8,7 @@ import type {
   PrizeRecordClient,
 } from "./types";
 import WechatShare from "./WechatShare";
+import GiftDrawAnimation from "./GiftDrawAnimation";
 import { useStayTracking } from "./useStayTracking";
 import { safeHttpUrl, safeMediaUrl } from "@/lib/urls";
 
@@ -94,6 +95,7 @@ export default function ActivityPage({
         : null,
   );
   const [drawing, setDrawing] = useState(false);
+  const [giftAnimating, setGiftAnimating] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [redeemTarget, setRedeemTarget] = useState<string | null>(null);
   const [redeemPassword, setRedeemPassword] = useState("");
@@ -131,6 +133,7 @@ export default function ActivityPage({
     setToast({ text, type });
   }
 
+  // 刷新 奖品库存、余量
   async function refreshPrizeStock() {
     try {
       const response = await fetch("/api/prizes/stock", { cache: "no-store" });
@@ -372,9 +375,8 @@ export default function ActivityPage({
       data = { message: "网络异常，请稍后重试" };
     }
 
-    setDrawing(false);
-
     if (!ok || !data?.result) {
+      setDrawing(false);
       if (data?.code === "NEED_AUTH") setModal("auth");
       else if (data?.code === "NEED_LEAD") setModal("lead");
       else if (data?.code === "NO_CHANCE") setModal("help");
@@ -402,8 +404,15 @@ export default function ActivityPage({
           }
         : prev,
     );
-    setModal("drawResult");
+    // 抽奖成功后先播礼盒动画，动画结束再展示具体结果
+    setGiftAnimating(true);
     void refreshPrizeStock();
+  }
+
+  function handleGiftAnimationComplete() {
+    setGiftAnimating(false);
+    setDrawing(false);
+    setModal("drawResult");
   }
 
   async function copyRedeemCode(code: string) {
@@ -938,6 +947,13 @@ export default function ActivityPage({
         </div>
       </div>
 
+      {giftAnimating && (
+        <GiftDrawAnimation
+          open
+          onComplete={handleGiftAnimationComplete}
+        />
+      )}
+
       {poster && (
         <dialog
           ref={posterRef}
@@ -1129,10 +1145,10 @@ export default function ActivityPage({
             {modal === "rules" && (
               <>
                 <span>详细规则</span>
-                <h2
+                {/* <h2
                   id="modal-title"
                   dangerouslySetInnerHTML={{ __html: activity.title }}
-                />
+                /> */}
                 {activity.rulesDetailHtml ? (
                   <div
                     className="rules-rich rules-rich-modal"
@@ -1296,9 +1312,9 @@ export default function ActivityPage({
             {modal === "prizes" && (
               <>
                 <span>我的奖品</span>
-                <h2 id="modal-title">
+                {/* <h2 id="modal-title">
                   {prizeRecords[0]?.prizeName || "暂时还没有中奖记录"}
-                </h2>
+                </h2> */}
                 <div className="prize-tabs" role="tablist" aria-label="奖品状态">
                   {prizeTabs.map((tab) => (
                     <button
