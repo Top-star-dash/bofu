@@ -791,7 +791,14 @@ export default function ActivityPage({
           ))}
         </section>
 
-        <section className="content-card stats-row">
+        <section
+          className="content-card stats-row"
+          style={{
+            background: "transparent",
+            border: "none",
+            boxShadow: "none",
+          }}
+        >
           <strong>
             曝光量 <b>{activity.exposureCount.toLocaleString()}</b>
           </strong>

@@ -804,9 +804,7 @@ button {
   gap: 26px;
   padding: 16px 14px;
   color: #b57942;
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  background: #ffedc9;
   font-size: 13px;
 }
 
