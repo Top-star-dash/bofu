@@ -902,7 +902,7 @@ export default function ActivityPage({
             background: "transparent",
             border: "none",
             boxShadow: "none",
-            marginBottom: 48,
+            marginBottom: 12,
           }}
         >
           <strong>
@@ -1207,9 +1207,9 @@ export default function ActivityPage({
                 <ul className="prize-list">
                   <li className={lastDraw.isWin ? "is-latest" : undefined}>
                     <div className="prize-line">
-                      <strong>
+                      {/* <strong>
                         {lastDraw.prizeLevel} · {lastDraw.prizeName}
-                      </strong>
+                      </strong> */}
                       <div className="prize-line-meta">
                         <em
                           className={`redeem-badge redeem-${lastDraw.redeemStatus.toLowerCase()}`}
@@ -1372,11 +1372,11 @@ export default function ActivityPage({
                               {item.prizeLevel} · {item.prizeName}
                             </strong>
                             <div className="prize-line-meta">
-                              <em
+                              {/* <em
                                 className={`redeem-badge redeem-${item.redeemStatus.toLowerCase()}`}
                               >
                                 {status}
-                              </em>
+                              </em> */}
                               {item.isWin &&
                                 item.redeemStatus === "PENDING" && (
                                   <button
