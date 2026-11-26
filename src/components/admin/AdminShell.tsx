@@ -7,11 +7,11 @@ const NAV: Array<{ href: string; label: string; permission?: PermissionCode }> =
   { href: "/admin/settings", label: "活动配置", permission: "activity" },
   { href: "/admin/prizes", label: "奖品管理", permission: "prizes" },
   { href: "/admin/consultants", label: "顾问管理", permission: "consultants" },
-  { href: "/admin/assets", label: "素材管理", permission: "assets" },
+  { href: "/admin/assets", label: "客户管理", permission: "assets" },
   { href: "/admin/leads", label: "线索管理", permission: "leads" },
   { href: "/admin/redeem", label: "核销台", permission: "redeem" },
   { href: "/admin/stats", label: "数据统计", permission: "stats" },
-  { href: "/admin/users", label: "用户权限", permission: "users" },
+  { href: "/admin/users", label: "用户管理", permission: "users" },
 ];
 
 function allowed(item: (typeof NAV)[number], session: AdminSession) {

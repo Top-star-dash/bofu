@@ -38,7 +38,7 @@ export default async function AdminAssetsPage() {
 
   return (
     <AdminShell session={session} current="/admin/assets">
-      <h2 style={{ marginTop: 0 }}>素材管理</h2>
+      <h2 style={{ marginTop: 0 }}>客户管理</h2>
       <p className="redeem-hint">
         楼盘社区用于「城芯生活」区块，项目亮点用于「为什么选择福美城」区块；图片支持直接上传（≤5MB）。
       </p>
