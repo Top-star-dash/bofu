@@ -100,6 +100,39 @@ export default function ActivityPage({
     setToast({ text, type });
   }
 
+  async function refreshPrizeStock() {
+    try {
+      const response = await fetch("/api/prizes/stock", { cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !Array.isArray(data.prizes)) return;
+      const stockMap = new Map<
+        string,
+        { stock: number; remainStock: number }
+      >(
+        data.prizes.map(
+          (item: { id: string; stock: number; remainStock: number }) => [
+            item.id,
+            { stock: item.stock, remainStock: item.remainStock },
+          ],
+        ),
+      );
+      setActivity((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          prizes: prev.prizes.map((prize) => {
+            const next = stockMap.get(prize.id);
+            return next
+              ? { ...prize, stock: next.stock, remainStock: next.remainStock }
+              : prize;
+          }),
+        };
+      });
+    } catch {
+      // 余量刷新失败静默忽略，保留当前展示
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
     async function bootstrap() {
@@ -130,6 +163,24 @@ export default function ActivityPage({
       cancelled = true;
     };
   }, [shareCode, inviterId]);
+
+  // 奖品余量轻量刷新：每 30 秒；切回前台时立刻补一次
+  useEffect(() => {
+    if (!activity?.id) return;
+    const poll = () => {
+      if (document.visibilityState === "hidden") return;
+      void refreshPrizeStock();
+    };
+    const timer = window.setInterval(poll, 30_000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void refreshPrizeStock();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [activity?.id]);
 
   useEffect(() => {
     if (!activity?.notices.length) return;
@@ -310,6 +361,7 @@ export default function ActivityPage({
         : prev,
     );
     setModal("drawResult");
+    void refreshPrizeStock();
   }
 
   async function copyRedeemCode(code: string) {
@@ -1106,9 +1158,9 @@ export default function ActivityPage({
                         </button>
                       </div>
                     )}
-                    <span>
+                    {/* <span>
                       {new Date(lastDraw.createdAt).toLocaleString("zh-CN")}
-                    </span>
+                    </span> */}
                     {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
                       <p className="redeem-tip">
                         到访请出示核销码，现场核销后失效
