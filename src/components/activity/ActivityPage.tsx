@@ -42,20 +42,32 @@ function formatDateTime(value: string) {
   return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日 ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+/** Strict Mode 双跑时复用同一次判定，避免刚写入的访问时间被当成「已访问」 */
+let posterDecideCache: { id: string; at: number; show: boolean } | null = null;
+
 /** 本机上次访问时间；距今未超过 suppressHours 则不再弹海报（0=每次都弹） */
 function shouldShowPoster(activityId: string, suppressHours: number) {
+  if (suppressHours <= 0) return true;
+
+  const now = Date.now();
+  if (
+    posterDecideCache &&
+    posterDecideCache.id === activityId &&
+    now - posterDecideCache.at < 500
+  ) {
+    return posterDecideCache.show;
+  }
+
   const visitKey = `activity_visit_at:${activityId}`;
-  const checkedKey = `poster_checked:${activityId}`;
   try {
-    // 同一次页面会话只判定一次（避免 Strict Mode 双跑把刚写入的时间当成「已访问」）
-    if (sessionStorage.getItem(checkedKey)) return false;
-    sessionStorage.setItem(checkedKey, "1");
     const last = Number(localStorage.getItem(visitKey));
-    const now = Date.now();
     localStorage.setItem(visitKey, String(now));
-    if (!Number.isFinite(last) || last <= 0) return true;
-    if (suppressHours <= 0) return true;
-    return now - last >= suppressHours * 3_600_000;
+    const show =
+      !Number.isFinite(last) ||
+      last <= 0 ||
+      now - last >= suppressHours * 3_600_000;
+    posterDecideCache = { id: activityId, at: now, show };
+    return show;
   } catch {
     return true;
   }
