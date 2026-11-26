@@ -4,6 +4,7 @@ import { FormEvent, ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageField from "./ImageField";
 import NoticeManager from "./NoticeManager";
+import { plainToRulesHtml, rulesHtmlToPlain } from "@/lib/rules-text";
 
 export type MapLinkFormItem = { name: string; url: string };
 
@@ -100,12 +101,21 @@ export default function ActivitySettings({
   const router = useRouter();
   const [tab, setTab] = useState<TabKey>("basic");
   const [form, setForm] = useState<ActivityFormData>(initial);
+  const [rulesPlain, setRulesPlain] = useState(() =>
+    rulesHtmlToPlain(initial.rulesHtml),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const rulesPreviewHtml = plainToRulesHtml(rulesPlain);
 
   function set<K extends keyof ActivityFormData>(key: K, value: ActivityFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function updateRulesPlain(value: string) {
+    setRulesPlain(value);
+    set("rulesHtml", plainToRulesHtml(value));
   }
 
   function setNumber(key: keyof ActivityFormData, value: string) {
@@ -458,14 +468,33 @@ export default function ActivitySettings({
 
           {tab === "rules" && (
             <div className="flex flex-col gap-3 md:col-span-2">
-              <Field label="规则 HTML">
+              <Field label="规则文案">
                 <textarea
-                  className={`${inputCls} resize-y`}
-                  value={form.rulesHtml}
-                  onChange={(event) => set("rulesHtml", event.target.value)}
-                  rows={8}
+                  className={`${inputCls} resize-y font-normal leading-6`}
+                  value={rulesPlain}
+                  onChange={(event) => updateRulesPlain(event.target.value)}
+                  rows={14}
+                  placeholder={
+                    "直接输入文字，按回车即可换行。例如：\n活动对象：……\n\n抽奖次数获取方式：\n(1) ……\n(2) ……"
+                  }
                 />
               </Field>
+              <p className="m-0 text-[12px] font-normal leading-5 text-[#8a6c5b]">
+                无需写 HTML。回车换行，空一行表示段落间距；保存后 H5
+                会按换行展示。
+              </p>
+              <div className="rounded-lg border border-dashed border-[#e4c69f] bg-[#fffaf3] p-3">
+                <p className="m-0 mb-2 text-[12px] font-bold text-[#5a241a]">
+                  预览效果
+                </p>
+                <div
+                  className="text-[13px] font-normal leading-7 text-[#3a2418] [&_p]:m-0"
+                  style={form.rulesColor ? { color: form.rulesColor } : undefined}
+                  dangerouslySetInnerHTML={{
+                    __html: rulesPreviewHtml || "<p>（暂无内容）</p>",
+                  }}
+                />
+              </div>
               <Field label="规则文字颜色">
                 <input
                   className={inputCls}
