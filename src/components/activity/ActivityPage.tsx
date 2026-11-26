@@ -1091,39 +1091,52 @@ export default function ActivityPage({
                   id="modal-title"
                   dangerouslySetInnerHTML={{ __html: activity.title }}
                 />
-                <ol>
-                  <li>
-                    每位客户首次进入并完成留资后免费抽奖{" "}
-                    {activity.firstDrawChance} 次。
-                  </li>
-                  <li>
-                    每邀请 1 位好友完成有效留资，增加{" "}
-                    {activity.assistChance} 次机会，最多 {activity.assistMaxExtra}{" "}
-                    次。
-                  </li>
-                  {activity.dailyDrawLimit > 0 && (
-                    <li>每位客户每日最多抽奖 {activity.dailyDrawLimit} 次。</li>
-                  )}
-                  {activity.totalDrawLimit > 0 && (
-                    <li>活动期间每位客户最多抽奖 {activity.totalDrawLimit} 次。</li>
-                  )}
-                  <li>礼品数量有限，先到先得，领完即止。</li>
-                  <li>
-                    领取截止至{" "}
-                    {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}
-                    ，逾期视为自动放弃。
-                  </li>
-                  <li>
-                    领奖地址：{activity.address}，到店后由工作人员现场核销。
-                  </li>
-                </ol>
-                {activity.rulesHtml ? (
+                {activity.rulesDetailHtml ? (
                   <div
-                    className="rules-rich"
-                    style={activity.rulesColor ? { color: activity.rulesColor } : undefined}
-                    dangerouslySetInnerHTML={{ __html: activity.rulesHtml }}
+                    className="rules-rich rules-rich-modal"
+                    style={
+                      activity.rulesColor
+                        ? { color: activity.rulesColor }
+                        : undefined
+                    }
+                    dangerouslySetInnerHTML={{ __html: activity.rulesDetailHtml }}
                   />
-                ) : null}
+                ) : (
+                  <ol>
+                    <li>
+                      每位客户首次进入并完成留资后免费抽奖{" "}
+                      {activity.firstDrawChance} 次。
+                    </li>
+                    <li>
+                      每邀请 1 位好友完成有效留资，增加{" "}
+                      {activity.assistChance} 次机会，最多{" "}
+                      {activity.assistMaxExtra} 次。
+                    </li>
+                    {activity.dailyDrawLimit > 0 && (
+                      <li>
+                        每位客户每日最多抽奖 {activity.dailyDrawLimit} 次。
+                      </li>
+                    )}
+                    {activity.totalDrawLimit > 0 && (
+                      <li>
+                        活动期间每位客户最多抽奖 {activity.totalDrawLimit}{" "}
+                        次。
+                      </li>
+                    )}
+                    <li>礼品数量有限，先到先得，领完即止。</li>
+                    <li>
+                      领取截止至{" "}
+                      {new Date(activity.redeemDeadline).toLocaleDateString(
+                        "zh-CN",
+                      )}
+                      ，逾期视为自动放弃。
+                    </li>
+                    <li>
+                      领奖地址：{activity.address}
+                      ，到店后由工作人员现场核销。
+                    </li>
+                  </ol>
+                )}
               </>
             )}
 

@@ -92,6 +92,8 @@ async function main() {
         wheelImageUrl: "/activity/大圆盘2.webp",
         rulesHtml:
           "<p>完成留资即可获得首次抽奖机会，邀请好友完成有效留资可增加抽奖次数。奖品数量有限，先到先得，领完即止。</p>",
+        rulesDetailHtml:
+          "<p><strong>活动对象：</strong>博富・福美城意向客户</p><p><strong>抽奖次数获取方式：</strong></p><ol><li>每位客户首次进入免费抽奖 1 次</li><li>每邀请 1 位好友完成“有效留资”增加抽奖 1 次</li><li>单人通过好友助力累计可获得的额外抽奖次数上限 3 次</li></ol><p><strong>兑奖有效期：</strong>全场礼品数量有限，先到先得，领完即止。领取时间截止至 2027 年 1 月 7 日，逾期视为自动放弃。</p><p><strong>领奖地址：</strong>博富・福美城冠军薈</p><p><strong>咨询电话：</strong>0750-5236666</p><p>声明：本活动最终解释权在法律允许范围内归博富·福美城所有</p>",
         rulesColor: "#fff1d5",
         exposureCount: 38913,
         participateCount: 26983,

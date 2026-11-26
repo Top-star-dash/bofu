@@ -53,6 +53,7 @@ export default async function AdminSettingsPage() {
                 logoUrl: activity.logoUrl ?? "",
                 logoSubUrl: activity.logoSubUrl ?? "",
                 rulesHtml: activity.rulesHtml ?? "",
+                rulesDetailHtml: activity.rulesDetailHtml ?? "",
                 rulesColor: activity.rulesColor ?? "",
                 redeemPassword: activity.redeemPassword,
                 firstDrawChance: activity.firstDrawChance,

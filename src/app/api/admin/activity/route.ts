@@ -70,6 +70,7 @@ const schema = z.object({
   logoUrl: optionalMedia,
   logoSubUrl: optionalMedia,
   rulesHtml: z.string().max(20000).optional().nullable(),
+  rulesDetailHtml: z.string().max(20000).optional().nullable(),
   rulesColor: z.string().trim().max(32).optional().nullable(),
   firstDrawChance: z.number().int().min(0).max(99).optional(),
   assistChance: z.number().int().min(0).max(99).optional(),

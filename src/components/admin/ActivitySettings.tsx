@@ -29,6 +29,7 @@ export type ActivityFormData = {
   logoUrl: string;
   logoSubUrl: string;
   rulesHtml: string;
+  rulesDetailHtml: string;
   rulesColor: string;
   redeemPassword: string;
   firstDrawChance: number;
@@ -458,17 +459,24 @@ export default function ActivitySettings({
           )}
 
           {tab === "rules" && (
-            <div className="flex flex-col gap-3 md:col-span-2">
+            <div className="flex flex-col gap-4 md:col-span-2">
               <div className="flex min-w-0 flex-col gap-1.5 text-[12px] font-bold text-[#5a241a]">
-                <span>规则文案</span>
+                <span>简易文案（首页活动规则区）</span>
                 <RulesRichEditor
+                  compact
                   value={form.rulesHtml}
                   onChange={(html) => set("rulesHtml", html)}
                 />
               </div>
+              <div className="flex min-w-0 flex-col gap-1.5 text-[12px] font-bold text-[#5a241a]">
+                <span>详细文案（「查看详细规则」弹窗）</span>
+                <RulesRichEditor
+                  value={form.rulesDetailHtml}
+                  onChange={(html) => set("rulesDetailHtml", html)}
+                />
+              </div>
               <p className="m-0 text-[12px] font-normal leading-5 text-[#8a6c5b]">
-                工具栏支持加粗、有序/无序列表、局部文字颜色；回车换行即可，无需手写
-                HTML。下方「规则默认颜色」作用于整块未单独设色的文字。
+                两处均支持加粗、列表、局部颜色。详细文案留空时，弹窗仍按抽奖次数等配置自动生成条列。
               </p>
               <Field label="规则默认颜色（整块底色字色）">
                 <input

@@ -122,6 +122,7 @@ export function serializeActivityForClient(
     logoUrl: normalizeMediaUrl(activity.logoUrl) ?? activity.logoUrl,
     logoSubUrl: normalizeMediaUrl(activity.logoSubUrl) ?? activity.logoSubUrl,
     rulesHtml: activity.rulesHtml,
+    rulesDetailHtml: activity.rulesDetailHtml,
     rulesColor: activity.rulesColor,
     firstDrawChance: activity.firstDrawChance,
     assistChance: activity.assistChance,

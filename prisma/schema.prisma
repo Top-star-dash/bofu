@@ -90,8 +90,10 @@ model Activity {
   /** 顶栏 Logo，空则用内置品牌图 */
   logoUrl         String?
   logoSubUrl      String?
-  /** 规则富文本，需 Text 以容纳完整活动规则 */
+  /** 首页活动规则区「简易文案」 */
   rulesHtml       String?  @db.Text
+  /** 「详细规则」弹窗文案；空则回落自动生成条列 */
+  rulesDetailHtml String?  @db.Text
   rulesColor      String?
   firstDrawChance Int            @default(1)
   assistChance    Int            @default(1)

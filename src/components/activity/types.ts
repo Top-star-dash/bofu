@@ -22,6 +22,7 @@ export type ActivityClient = {
   logoUrl: string | null;
   logoSubUrl: string | null;
   rulesHtml: string | null;
+  rulesDetailHtml: string | null;
   rulesColor: string | null;
   firstDrawChance: number;
   assistChance: number;

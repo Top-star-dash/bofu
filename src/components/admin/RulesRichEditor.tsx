@@ -21,9 +21,11 @@ const btnActive = "border-[#b83224] bg-[#b83224] text-white";
 type Props = {
   value: string;
   onChange: (html: string) => void;
+  /** 简易文案用更矮的编辑区 */
+  compact?: boolean;
 };
 
-export default function RulesRichEditor({ value, onChange }: Props) {
+export default function RulesRichEditor({ value, onChange, compact = false }: Props) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -43,8 +45,7 @@ export default function RulesRichEditor({ value, onChange }: Props) {
     content: value || "<p></p>",
     editorProps: {
       attributes: {
-        class:
-          "min-h-[220px] max-h-[420px] overflow-y-auto px-3 py-2 text-[13px] font-normal leading-7 text-[#3a2418] outline-none [&_p]:m-0 [&_p+p]:mt-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5",
+        class: `${compact ? "min-h-[120px] max-h-[240px]" : "min-h-[220px] max-h-[420px]"} overflow-y-auto px-3 py-2 text-[13px] font-normal leading-7 text-[#3a2418] outline-none [&_p]:m-0 [&_p+p]:mt-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5`,
       },
     },
     onUpdate: ({ editor: current }) => {

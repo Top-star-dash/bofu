@@ -381,7 +381,7 @@ button {
 .image-draw {
   display: grid;
   place-items: center;
-  width: 100%;
+  width: 80%;
   aspect-ratio: 1;
   padding: 4px 8px;
   border: 0;
@@ -2170,6 +2170,12 @@ button {
   border-top: 1px dashed #e0c9ae;
   font-size: 13px;
   line-height: 1.7;
+}
+
+.rules-rich-modal {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .rules-rich p {
