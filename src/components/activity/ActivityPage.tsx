@@ -183,6 +183,16 @@ export default function ActivityPage({
         if (response.ok) {
           setActivity(data.activity);
           setCustomer(data.customer);
+          // 与活动数据同批决定海报；避免在 effect 内同步 setState 引发级联渲染
+          if (
+            shouldShowPoster(
+              data.activity.id,
+              data.activity.posterSuppressHours ?? 1,
+            )
+          ) {
+            setPosterSeconds(5);
+            setPoster(true);
+          }
         } else {
           showToast(data.message || "活动加载失败");
         }
@@ -241,17 +251,6 @@ export default function ActivityPage({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [imagePreview]);
-
-  // 活动就绪后按「距上次访问」决定是否弹海报（间隔见活动配置 posterSuppressHours）
-  useEffect(() => {
-    if (!activity?.id) return;
-    if (
-      shouldShowPoster(activity.id, activity.posterSuppressHours ?? 1)
-    ) {
-      setPosterSeconds(5);
-      setPoster(true);
-    }
-  }, [activity?.id, activity?.posterSuppressHours]);
 
   useEffect(() => {
     if (!poster || !activity) return;
