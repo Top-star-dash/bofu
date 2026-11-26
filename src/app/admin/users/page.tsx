@@ -7,6 +7,7 @@ import UsersManager from "@/components/admin/UsersManager";
 import { canUse } from "@/lib/admin-guard";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { permissionCodesFromUserRoles } from "@/lib/roles";
 
 export default async function AdminUsersPage() {
   const session = await getAdminSession();
@@ -15,19 +16,55 @@ export default async function AdminUsersPage() {
     redirect(firstAllowedHref(session) || "/admin/login");
   }
 
-  const users = await prisma.adminUser.findMany({
-    orderBy: { createdAt: "asc" },
-    include: { permissions: { include: { permission: true } } },
-  });
+  const [users, roles] = await Promise.all([
+    prisma.adminUser.findMany({
+      orderBy: { createdAt: "asc" },
+      include: {
+        roles: {
+          include: {
+            role: {
+              include: {
+                permissions: { include: { permission: true } },
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.adminRole.findMany({
+      orderBy: [{ isSystem: "desc" }, { createdAt: "asc" }],
+      include: {
+        permissions: { include: { permission: true } },
+        _count: { select: { users: true } },
+      },
+    }),
+  ]);
 
   return (
     <AdminShell session={session} current="/admin/users">
-      <h2 style={{ marginTop: 0 }}>用户权限</h2>
+      <h2 style={{ marginTop: 0 }}>用户与角色</h2>
       <p style={{ color: "#8a6c5b" }}>
-        超级管理员可新增后台用户、调整权限、停用账号与重置密码。
+        权限由角色决定（可多选并集）；修改角色权限会同步所有绑定用户（需重新登录生效）。
       </p>
       <UsersManager
         currentUserId={session.sub}
+        roles={roles.map((role) => ({
+          id: role.id,
+          code: role.code,
+          name: role.name,
+          description: role.description ?? "",
+          isSystem: role.isSystem,
+          permissions: role.permissions.map((item) => item.permission.code),
+        }))}
+        roleRows={roles.map((role) => ({
+          id: role.id,
+          code: role.code,
+          name: role.name,
+          description: role.description ?? "",
+          isSystem: role.isSystem,
+          userCount: role._count.users,
+          permissions: role.permissions.map((item) => item.permission.code),
+        }))}
         users={users.map((user) => ({
           id: user.id,
           username: user.username,
@@ -35,7 +72,13 @@ export default async function AdminUsersPage() {
           phone: user.phone ?? "",
           isSuperAdmin: user.isSuperAdmin,
           status: user.status,
-          permissions: user.permissions.map((item) => item.permission.code),
+          roleIds: user.roles.map((edge) => edge.role.id),
+          roles: user.roles.map((edge) => ({
+            id: edge.role.id,
+            code: edge.role.code,
+            name: edge.role.name,
+          })),
+          permissions: permissionCodesFromUserRoles(user.roles),
         }))}
       />
 

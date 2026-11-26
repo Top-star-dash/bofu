@@ -63,11 +63,11 @@ FLUSH PRIVILEGES;
 | 活动配置 | `/admin/settings` | 标题/时间/分享/地址外链/核销密码/次数规则/公告/规则文案 |
 | 奖品管理 | `/admin/prizes` | 增删改、库存、概率（合计 100% 才可保存）、兜底奖 |
 | 顾问管理 | `/admin/consultants` | CRUD、启停、默认顾问、二维码、Excel 批量导入 |
-| 素材管理 | `/admin/assets` | Logo/KV/海报/转盘/楼盘资产上传与排序 |
+| 客户管理 | `/admin/assets` | Logo/KV/海报/转盘/楼盘资产上传与排序 |
 | 线索管理 | `/admin/leads` | 筛选/分页/脱敏/导出 CSV；`/admin/leads/[id]` 详情含备注、分层、人工改绑、行为轨迹 |
 | 核销台 | `/admin/redeem` | 核销码 + 核销密码查询，二次确认核销，记录核销人与操作日志 |
 | 数据统计 | `/admin/stats` | 顾问维度漏斗与排行、库存预警、按日期筛选、xlsx 导出 |
-| 用户权限 | `/admin/users` | 账号、权限模块、启停、重置密码 |
+| 用户与角色 | `/admin/users` | 账号、多角色分配、角色权限、启停、重置密码 |
 
 核销接口：`POST /api/admin/redeem`，`action=query|confirm`，需 `redeem` 权限。
 导出接口：

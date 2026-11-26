@@ -34,35 +34,57 @@ enum LeadTier {
 }
 
 model AdminUser {
-  id           String      @id @default(cuid())
-  username     String      @unique
-  passwordHash String
-  name         String
-  phone        String?
-  isSuperAdmin Boolean     @default(false)
-  status       AdminStatus @default(ACTIVE)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  permissions  AdminUserPermission[]
+  id            String          @id @default(cuid())
+  username      String          @unique
+  passwordHash  String
+  name          String
+  phone         String?
+  isSuperAdmin  Boolean         @default(false)
+  status        AdminStatus     @default(ACTIVE)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  roles         AdminUserRole[]
   operationLogs OperationLog[]
 }
 
 model Permission {
-  id          String   @id @default(cuid())
-  code        String   @unique
+  id          String                @id @default(cuid())
+  code        String                @unique
   name        String
   description String?
-  users       AdminUserPermission[]
+  roles       AdminRolePermission[]
 }
 
-model AdminUserPermission {
+model AdminRole {
+  id          String               @id @default(cuid())
+  code        String               @unique
+  name        String
+  description String?
+  isSystem    Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  permissions AdminRolePermission[]
+  users       AdminUserRole[]
+}
+
+model AdminRolePermission {
   id           String     @id @default(cuid())
-  userId       String
+  roleId       String
   permissionId String
-  user         AdminUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         AdminRole  @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, permissionId])
+  @@unique([roleId, permissionId])
+}
+
+model AdminUserRole {
+  id     String    @id @default(cuid())
+  userId String
+  roleId String
+  user   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   AdminRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
 }
 
 model Activity {

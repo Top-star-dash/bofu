@@ -3,32 +3,89 @@ import { z } from "zod";
 import { getAdminSession, hashPassword, writeOperationLog } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PERMISSION_MODULES } from "@/lib/permissions";
+import { permissionCodesFromUserRoles } from "@/lib/roles";
+
+function requireUsersPermission(
+  session: Awaited<ReturnType<typeof getAdminSession>>,
+) {
+  return (
+    session &&
+    (session.isSuperAdmin || session.permissions.includes("users"))
+  );
+}
+
+const userRoleInclude = {
+  roles: {
+    include: {
+      role: {
+        include: {
+          permissions: { include: { permission: true } },
+        },
+      },
+    },
+  },
+} as const;
+
+function mapUser(
+  user: {
+    id: string;
+    username: string;
+    name: string;
+    phone: string | null;
+    isSuperAdmin: boolean;
+    status: string;
+    createdAt: Date;
+    roles: Parameters<typeof permissionCodesFromUserRoles>[0];
+  },
+) {
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    phone: user.phone,
+    isSuperAdmin: user.isSuperAdmin,
+    status: user.status,
+    roleIds: user.roles.map((edge) => edge.role.id),
+    roles: user.roles.map((edge) => ({
+      id: edge.role.id,
+      code: edge.role.code,
+      name: edge.role.name,
+    })),
+    permissions: permissionCodesFromUserRoles(user.roles),
+    createdAt: user.createdAt,
+  };
+}
 
 export async function GET() {
   const session = await getAdminSession();
-  if (!session || (!session.isSuperAdmin && !session.permissions.includes("users"))) {
+  if (!requireUsersPermission(session)) {
     return NextResponse.json({ message: "无权限" }, { status: 403 });
   }
 
-  const users = await prisma.adminUser.findMany({
-    orderBy: { createdAt: "asc" },
-    include: {
-      permissions: { include: { permission: true } },
-    },
-  });
+  const [users, roles] = await Promise.all([
+    prisma.adminUser.findMany({
+      orderBy: { createdAt: "asc" },
+      include: userRoleInclude,
+    }),
+    prisma.adminRole.findMany({
+      orderBy: [{ isSystem: "desc" }, { createdAt: "asc" }],
+      include: {
+        permissions: { include: { permission: true } },
+      },
+    }),
+  ]);
 
   return NextResponse.json({
     permissions: PERMISSION_MODULES,
-    users: users.map((user) => ({
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      phone: user.phone,
-      isSuperAdmin: user.isSuperAdmin,
-      status: user.status,
-      permissions: user.permissions.map((item) => item.permission.code),
-      createdAt: user.createdAt,
+    roles: roles.map((role) => ({
+      id: role.id,
+      code: role.code,
+      name: role.name,
+      description: role.description ?? "",
+      isSystem: role.isSystem,
+      permissions: role.permissions.map((item) => item.permission.code),
     })),
+    users: users.map(mapUser),
   });
 }
 
@@ -37,12 +94,12 @@ const createSchema = z.object({
   name: z.string().min(1).max(64),
   phone: z.string().optional(),
   password: z.string().min(8).max(64),
-  permissions: z.array(z.string()).default([]),
+  roleIds: z.array(z.string()).default([]),
 });
 
 export async function POST(request: Request) {
   const session = await getAdminSession();
-  if (!session || (!session.isSuperAdmin && !session.permissions.includes("users"))) {
+  if (!requireUsersPermission(session)) {
     return NextResponse.json({ message: "无权限" }, { status: 403 });
   }
 
@@ -59,9 +116,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "账号已存在" }, { status: 409 });
   }
 
-  const permissionRows = await prisma.permission.findMany({
-    where: { code: { in: parsed.data.permissions } },
-  });
+  const roleRows = parsed.data.roleIds.length
+    ? await prisma.adminRole.findMany({
+        where: { id: { in: parsed.data.roleIds } },
+      })
+    : [];
 
   const passwordHash = await hashPassword(parsed.data.password);
   const user = await prisma.adminUser.create({
@@ -70,18 +129,16 @@ export async function POST(request: Request) {
       name: parsed.data.name,
       phone: parsed.data.phone || null,
       passwordHash,
-      permissions: {
-        create: permissionRows.map((permission) => ({
-          permissionId: permission.id,
-        })),
+      roles: {
+        create: roleRows.map((role) => ({ roleId: role.id })),
       },
     },
   });
 
   await writeOperationLog(
-    session.sub,
+    session!.sub,
     "admin.user.create",
-    `${user.username}:${parsed.data.permissions.join(",")}`,
+    `${user.username}:roles=${roleRows.map((role) => role.code).join(",")}`,
   );
 
   return NextResponse.json({ ok: true, id: user.id });
@@ -92,14 +149,14 @@ const patchSchema = z.object({
   name: z.string().trim().min(1).max(64).optional(),
   phone: z.string().trim().max(32).optional().nullable(),
   status: z.enum(["ACTIVE", "DISABLED"]).optional(),
-  permissions: z.array(z.string()).optional(),
+  roleIds: z.array(z.string()).optional(),
   password: z.string().min(8).max(64).optional(),
 });
 
-/** E.2.9 用户管理补齐：改姓名/手机/权限/状态，重置密码 */
+/** 用户管理：改姓名/手机/角色/状态，重置密码 */
 export async function PATCH(request: Request) {
   const session = await getAdminSession();
-  if (!session || (!session.isSuperAdmin && !session.permissions.includes("users"))) {
+  if (!requireUsersPermission(session)) {
     return NextResponse.json({ message: "无权限" }, { status: 403 });
   }
 
@@ -111,14 +168,21 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const { id, permissions, password, ...rest } = parsed.data;
+  const { id, roleIds, password, ...rest } = parsed.data;
   const target = await prisma.adminUser.findUnique({ where: { id } });
   if (!target) {
     return NextResponse.json({ message: "用户不存在" }, { status: 404 });
   }
 
+  if (roleIds && target.isSuperAdmin) {
+    return NextResponse.json(
+      { message: "超级管理员不通过角色分配权限" },
+      { status: 400 },
+    );
+  }
+
   if (rest.status === "DISABLED") {
-    if (target.id === session.sub) {
+    if (target.id === session!.sub) {
       return NextResponse.json({ message: "不能停用当前登录账号" }, { status: 400 });
     }
     if (target.isSuperAdmin) {
@@ -145,16 +209,16 @@ export async function PATCH(request: Request) {
   await prisma.$transaction(async (tx) => {
     await tx.adminUser.update({ where: { id }, data });
 
-    if (permissions) {
-      const rows = await tx.permission.findMany({
-        where: { code: { in: permissions } },
+    if (roleIds) {
+      const rows = await tx.adminRole.findMany({
+        where: { id: { in: roleIds } },
       });
-      await tx.adminUserPermission.deleteMany({ where: { userId: id } });
+      await tx.adminUserRole.deleteMany({ where: { userId: id } });
       if (rows.length) {
-        await tx.adminUserPermission.createMany({
-          data: rows.map((permission) => ({
+        await tx.adminUserRole.createMany({
+          data: rows.map((role) => ({
             userId: id,
-            permissionId: permission.id,
+            roleId: role.id,
           })),
         });
       }
@@ -162,10 +226,17 @@ export async function PATCH(request: Request) {
   });
 
   await writeOperationLog(
-    session.sub,
-    "admin.user.update",
-    `${target.username}:${Object.keys(parsed.data).filter((key) => key !== "id").join(",")}`,
+    session!.sub,
+    roleIds ? "admin.user.roles" : "admin.user.update",
+    `${target.username}:${Object.keys(parsed.data)
+      .filter((key) => key !== "id")
+      .join(",")}`,
   );
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    tip: roleIds
+      ? "角色已更新；该用户需重新登录后权限生效"
+      : undefined,
+  });
 }

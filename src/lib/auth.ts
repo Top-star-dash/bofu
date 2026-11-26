@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import type { PermissionCode } from "@/lib/permissions";
+import { permissionCodesFromUserRoles } from "@/lib/roles";
 
 const COOKIE_NAME = "bofu_admin_session";
 const SESSION_DAYS = 7;
@@ -89,8 +90,14 @@ export async function loadAdminAuthPayload(username: string, password: string) {
   const user = await prisma.adminUser.findUnique({
     where: { username },
     include: {
-      permissions: {
-        include: { permission: true },
+      roles: {
+        include: {
+          role: {
+            include: {
+              permissions: { include: { permission: true } },
+            },
+          },
+        },
       },
     },
   });
@@ -104,7 +111,7 @@ export async function loadAdminAuthPayload(username: string, password: string) {
     username: user.username,
     name: user.name,
     isSuperAdmin: user.isSuperAdmin,
-    permissions: user.permissions.map((item) => item.permission.code),
+    permissions: permissionCodesFromUserRoles(user.roles),
   } satisfies AdminSession;
 }
 

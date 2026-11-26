@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { hash } from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { SYSTEM_ROLES } from "../src/lib/roles";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -14,16 +15,50 @@ const prisma = new PrismaClient({
 
 const PERMISSIONS = [
   ["activity", "活动配置"],
-  ["assets", "素材管理"],
+  ["assets", "客户管理"],
   ["prizes", "奖品管理"],
   ["rules", "规则管理"],
   ["consultants", "顾问管理"],
   ["leads", "线索管理"],
   ["redeem", "核销管理"],
   ["stats", "数据统计"],
-  ["users", "用户权限"],
+  ["users", "用户管理"],
   ["settings", "系统设置"],
 ] as const;
+
+async function seedSystemRoles() {
+  const permissionRows = await prisma.permission.findMany();
+  const byCode = new Map(permissionRows.map((row) => [row.code, row]));
+
+  for (const preset of SYSTEM_ROLES) {
+    const role = await prisma.adminRole.upsert({
+      where: { code: preset.code },
+      update: {
+        name: preset.name,
+        description: preset.description,
+        isSystem: true,
+      },
+      create: {
+        code: preset.code,
+        name: preset.name,
+        description: preset.description,
+        isSystem: true,
+      },
+    });
+
+    await prisma.adminRolePermission.deleteMany({ where: { roleId: role.id } });
+    const rows = preset.permissions
+      .map((code) => byCode.get(code))
+      .filter(Boolean)
+      .map((permission) => ({
+        roleId: role.id,
+        permissionId: permission!.id,
+      }));
+    if (rows.length) {
+      await prisma.adminRolePermission.createMany({ data: rows });
+    }
+  }
+}
 
 async function main() {
   for (const [code, name] of PERMISSIONS) {
@@ -33,6 +68,8 @@ async function main() {
       create: { code, name },
     });
   }
+
+  await seedSystemRoles();
 
   const passwordHash = await hash("bofuadminNsw1!", 10);
   const admin = await prisma.adminUser.upsert({
@@ -51,23 +88,6 @@ async function main() {
       status: "ACTIVE",
     },
   });
-
-  const allPermissions = await prisma.permission.findMany();
-  for (const permission of allPermissions) {
-    await prisma.adminUserPermission.upsert({
-      where: {
-        userId_permissionId: {
-          userId: admin.id,
-          permissionId: permission.id,
-        },
-      },
-      update: {},
-      create: {
-        userId: admin.id,
-        permissionId: permission.id,
-      },
-    });
-  }
 
   let activity = await prisma.activity.findFirst({
     orderBy: { createdAt: "asc" },
