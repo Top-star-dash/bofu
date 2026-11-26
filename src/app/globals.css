@@ -1599,13 +1599,28 @@ button {
 }
 
 @media (max-width:900px) {
+  /* 移动端隐藏侧边栏，改由顶栏汉堡按钮打开抽屉导航 */
   .admin-shell {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  .admin-main {
+    padding: 14px 14px 0;
+  }
+
+  .admin-top {
+    margin-bottom: 14px;
   }
 
   .admin-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  /* 窄屏表格保持单行，超出部分横向滚动，避免逐字换行 */
+  .admin-table th,
+  .admin-table td {
+    white-space: nowrap;
   }
 
   .admin-login-panel {

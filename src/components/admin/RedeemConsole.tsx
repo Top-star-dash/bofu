@@ -167,10 +167,15 @@ export default function RedeemConsole() {
                 setCode(event.target.value);
                 setRecord(null);
               }}
-              placeholder="例如 cm3x9k0..."
+              placeholder="例如 123456"
               autoComplete="off"
               spellCheck={false}
+              inputMode="numeric"
+              maxLength={8}
             />
+            <span style={{ fontSize: 12, color: "#8a6c5b" }}>
+              客户手机上的核销码为 4~8 位数字
+            </span>
           </label>
           <label>
             核销密码

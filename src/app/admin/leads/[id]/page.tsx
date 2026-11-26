@@ -9,6 +9,7 @@ import LeadDetailTabs, {
   type SummaryItem,
   type TimelineRow,
 } from "@/components/admin/LeadDetailTabs";
+import type { CustomerPrizeRow } from "@/components/admin/CustomerPrizes";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
@@ -113,6 +114,27 @@ export default async function AdminLeadDetailPage({
     detail: log.detail || "",
   }));
 
+  // 客户奖品：只列中奖记录，未中奖抽奖仅计数
+  const prizeRows: CustomerPrizeRow[] = customer.drawRecords
+    .filter((record) => record.isWin)
+    .map((record) => ({
+      id: record.id,
+      prizeName: record.prizeName,
+      prizeLevel: record.prizeLevel,
+      isWin: record.isWin,
+      redeemCode: record.redeemCode,
+      redeemStatus: record.redeemStatus,
+      createdAt: record.createdAt.toISOString(),
+      redeemedAt: record.redeemedAt?.toISOString() ?? null,
+      redeemedBy: record.redeemedBy,
+    }));
+
+  const canRedeem = hasPermission(
+    session.permissions,
+    "redeem",
+    session.isSuperAdmin,
+  );
+
   const summary: SummaryItem[] = [
     { label: "姓名", value: lead.name },
     {
@@ -165,6 +187,9 @@ export default async function AdminLeadDetailPage({
         consultants={consultants}
         timeline={timelineRows}
         logs={logRows}
+        prizes={prizeRows}
+        drawCount={customer.drawRecords.length}
+        canRedeem={canRedeem}
       />
     </AdminShell>
   );

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import LeadDetail from "./LeadDetail";
 import PreviewableImage from "./PreviewableImage";
+import CustomerPrizes, { type CustomerPrizeRow } from "./CustomerPrizes";
 
 export type SummaryItem = { label: string; value: string };
 export type InfoItem = { label: string; value: string };
@@ -12,6 +13,7 @@ export type LogRow = { at: string; action: string; detail: string };
 const TABS = [
   { key: "overview", label: "概览" },
   { key: "customer", label: "客户与留资" },
+  { key: "prizes", label: "客户奖品" },
   { key: "remark", label: "备注与分层" },
   { key: "timeline", label: "行为轨迹" },
   { key: "logs", label: "操作日志" },
@@ -44,6 +46,9 @@ export default function LeadDetailTabs({
   consultants,
   timeline,
   logs,
+  prizes,
+  drawCount,
+  canRedeem,
 }: {
   summary: SummaryItem[];
   avatarUrl: string;
@@ -56,6 +61,9 @@ export default function LeadDetailTabs({
   consultants: Array<{ id: string; name: string }>;
   timeline: TimelineRow[];
   logs: LogRow[];
+  prizes: CustomerPrizeRow[];
+  drawCount: number;
+  canRedeem: boolean;
 }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const [page, setPage] = useState(1);
@@ -89,6 +97,9 @@ export default function LeadDetailTabs({
             {item.label}
             {item.key === "timeline" && timeline.length ? (
               <span className="ml-1 opacity-70">({timeline.length})</span>
+            ) : null}
+            {item.key === "prizes" && prizes.length ? (
+              <span className="ml-1 opacity-70">({prizes.length})</span>
             ) : null}
           </button>
         ))}
@@ -163,6 +174,10 @@ export default function LeadDetailTabs({
             </div>
           </div>
         </div>
+      )}
+
+      {tab === "prizes" && (
+        <CustomerPrizes rows={prizes} drawCount={drawCount} canRedeem={canRedeem} />
       )}
 
       {tab === "remark" && (

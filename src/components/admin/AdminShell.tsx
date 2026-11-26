@@ -1,5 +1,4 @@
-import Link from "next/link";
-import LogoutButton from "@/components/admin/LogoutButton";
+import AdminShellClient from "@/components/admin/AdminShellClient";
 import type { AdminSession } from "@/lib/auth";
 import { hasPermission, type PermissionCode } from "@/lib/permissions";
 
@@ -39,44 +38,18 @@ export default function AdminShell({
   current: string;
   children: React.ReactNode;
 }) {
-  const items = NAV.filter((item) => allowed(item, session));
+  const items = NAV.filter((item) => allowed(item, session)).map(
+    ({ href, label }) => ({ href, label }),
+  );
 
   return (
-    <div className="admin-body admin-shell">
-      <aside className="admin-side">
-        <h1>福美城管理后台</h1>
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={current === item.href ? "page" : undefined}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </aside>
-      <div className="admin-main">
-        <div className="admin-top">
-          <div>
-            <strong>{session.name}</strong>
-            <span style={{ marginLeft: 8, color: "#8a6c5b" }}>
-              @{session.username}
-            </span>
-          </div>
-          <LogoutButton />
-        </div>
-        <div
-          className={[
-            "admin-content flex flex-col gap-4 !overflow-x-auto",
-            "[&>*]:shrink-0",
-            "[&>h2]:m-0 [&>h2]:text-lg [&>h2]:font-bold",
-            "[&>h3]:m-0 [&>p]:m-0",
-            "[&_.admin-card]:overflow-x-auto",
-          ].join(" ")}
-        >
-          {children}
-        </div>
-      </div>
-    </div>
+    <AdminShellClient
+      name={session.name}
+      username={session.username}
+      items={items}
+      current={current}
+    >
+      {children}
+    </AdminShellClient>
   );
 }

@@ -175,8 +175,120 @@ export async function getStatsSummary(
   };
 }
 
-export type StockWarning = {
-  id: string;
+/** 北京时间当天 0 点 */
+export function shanghaiDayStart(now = new Date()) {
+  const offsetMs = 8 * 60 * 60 * 1000;
+  const local = now.getTime() + offsetMs;
+  return new Date(Math.floor(local / 86_400_000) * 86_400_000 - offsetMs);
+}
+
+/** 北京时间日期键 YYYY-MM-DD */
+export function shanghaiDayKey(date: Date) {
+  return new Date(date.getTime() + 8 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+export type DailyPoint = {
+  date: string;
+  customers: number;
+  leads: number;
+  draws: number;
+  wins: number;
+  redeemed: number;
+};
+
+export type RangeDigest = {
+  start: string;
+  end: string;
+  overview: StatsOverview;
+  daily: DailyPoint[];
+};
+
+/** 按时间范围（含首尾）统计，并按天拆分，用于观察流量变化 */
+export async function getRangeDigest(
+  activityId: string,
+  start: Date,
+  end: Date,
+): Promise<RangeDigest> {
+  const createdAt = { gte: start, lte: end };
+
+  const [customers, leads, draws, assists] = await Promise.all([
+    prisma.customer.findMany({
+      where: { activityId, createdAt },
+      select: { createdAt: true },
+    }),
+    prisma.lead.findMany({
+      where: { activityId, createdAt },
+      select: { createdAt: true },
+    }),
+    prisma.drawRecord.findMany({
+      where: { activityId, createdAt },
+      select: { createdAt: true, isWin: true, redeemStatus: true },
+    }),
+    prisma.assistRecord.count({ where: { valid: true, createdAt } }),
+  ]);
+
+  const buckets = new Map<string, DailyPoint>();
+  const dayCount = Math.max(
+    1,
+    Math.round((shanghaiDayStart(end).getTime() - shanghaiDayStart(start).getTime()) / 86_400_000) + 1,
+  );
+  const firstDay = shanghaiDayStart(start).getTime();
+  for (let i = 0; i < dayCount; i += 1) {
+    const key = shanghaiDayKey(new Date(firstDay + i * 86_400_000));
+    buckets.set(key, {
+      date: key,
+      customers: 0,
+      leads: 0,
+      draws: 0,
+      wins: 0,
+      redeemed: 0,
+    });
+  }
+
+  const bucketOf = (date: Date) => {
+    const key = shanghaiDayKey(date);
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { date: key, customers: 0, leads: 0, draws: 0, wins: 0, redeemed: 0 };
+      buckets.set(key, bucket);
+    }
+    return bucket;
+  };
+
+  for (const customer of customers) bucketOf(customer.createdAt).customers += 1;
+  for (const lead of leads) bucketOf(lead.createdAt).leads += 1;
+  for (const draw of draws) {
+    const bucket = bucketOf(draw.createdAt);
+    bucket.draws += 1;
+    if (draw.isWin) bucket.wins += 1;
+    if (draw.redeemStatus === "REDEEMED") bucket.redeemed += 1;
+  }
+
+  const daily = [...buckets.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  const overview: StatsOverview = {
+    customers: customers.length,
+    leads: leads.length,
+    draws: draws.length,
+    winners: draws.filter((draw) => draw.isWin).length,
+    redeemed: draws.filter((draw) => draw.redeemStatus === "REDEEMED").length,
+    assists,
+    conversion: customers.length
+      ? Math.round((leads.length / customers.length) * 1000) / 10
+      : 0,
+  };
+
+  return {
+    start: shanghaiDayKey(start),
+    end: shanghaiDayKey(end),
+    overview,
+    daily,
+  };
+}
+
+export type StockWarning = {  id: string;
   name: string;
   level: string;
   stock: number;

@@ -4,10 +4,16 @@ import { getCurrentActivity } from "@/lib/activity";
 import { getAdminSession, writeOperationLog } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
+import { normalizeRedeemCode } from "@/lib/redeem-code";
 
 const schema = z.object({
   action: z.enum(["query", "confirm"]),
-  redeemCode: z.string().trim().min(4).max(64),
+  redeemCode: z
+    .string()
+    .trim()
+    .min(4)
+    .max(64)
+    .transform(normalizeRedeemCode),
   password: z.string().trim().min(1).max(32),
 });
 
@@ -60,6 +66,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "请填写核销码与核销密码" }, { status: 400 });
   }
 
+  const redeemCode = parsed.data.redeemCode;
+  // 新码为 4~8 位数字；历史 cuid 码仍保留可查，避免旧数据无法核销
+  const isLegacyCode = /^[a-z0-9]{20,64}$/i.test(redeemCode);
+  if (!/^\d{4,8}$/.test(redeemCode) && !isLegacyCode) {
+    return NextResponse.json(
+      { message: "核销码为 4~8 位数字，请核对后重试" },
+      { status: 400 },
+    );
+  }
+
   const activity = await getCurrentActivity();
   if (!activity) {
     return NextResponse.json({ message: "活动不存在" }, { status: 404 });
@@ -70,7 +86,7 @@ export async function POST(request: Request) {
   }
 
   const record = await prisma.drawRecord.findUnique({
-    where: { redeemCode: parsed.data.redeemCode },
+    where: { redeemCode },
     include: {
       customer: { include: { lead: true } },
     },

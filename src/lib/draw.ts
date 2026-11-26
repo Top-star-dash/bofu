@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { generateRedeemCode } from "@/lib/redeem-code";
 
 function toNumber(value: { toString(): string } | number) {
   return typeof value === "number" ? value : Number(value.toString());
@@ -94,6 +95,18 @@ export async function drawPrize(activityId: string, customerId: string) {
     });
 
     const isWin = !selected.isFallback;
+
+    // 核销码改为 4~8 位数字（这里生成 6 位），冲突时重试
+    let redeemCode = generateRedeemCode();
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const exists = await tx.drawRecord.findUnique({
+        where: { redeemCode },
+        select: { id: true },
+      });
+      if (!exists) break;
+      redeemCode = generateRedeemCode();
+    }
+
     const record = await tx.drawRecord.create({
       data: {
         activityId,
@@ -103,6 +116,7 @@ export async function drawPrize(activityId: string, customerId: string) {
         prizeLevel: selected.level,
         isWin,
         redeemStatus: isWin ? "PENDING" : "EXPIRED",
+        redeemCode,
       },
     });
 

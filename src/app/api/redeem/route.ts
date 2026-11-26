@@ -3,9 +3,15 @@ import { z } from "zod";
 import { getCurrentActivity } from "@/lib/activity";
 import { getCustomerSession } from "@/lib/customer-session";
 import { prisma } from "@/lib/db";
+import { normalizeRedeemCode } from "@/lib/redeem-code";
 
 const schema = z.object({
-  redeemCode: z.string().min(1),
+  redeemCode: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .transform(normalizeRedeemCode),
   password: z.string().min(1),
 });
 
