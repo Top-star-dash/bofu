@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import styles from "./GiftDrawAnimation.module.css";
+import "./GiftDrawAnimation.css";
 
 type Props = {
   /** true 时播放一次；false 时不挂载任何 DOM */
@@ -76,21 +76,21 @@ export default function GiftDrawAnimation({ open, onComplete }: Props) {
 
   return (
     <div
-      className={styles.overlay}
+      className="gift-anim-overlay"
       data-phase={phase}
       role="dialog"
       aria-modal="true"
       aria-label="抽奖动画"
     >
-      <div className={styles.stage}>
-        <p className={styles.tip} role="status">
+      <div className="gift-anim-stage">
+        <p className="gift-anim-tip" role="status">
           {tip}
         </p>
 
-        <div className={styles.box} aria-hidden="true">
-          <span className={styles.glow} />
+        <div className="gift-anim-box" aria-hidden="true">
+          <span className="gift-anim-glow" />
 
-          <span className={styles.beam}>
+          <span className="gift-anim-beam">
             {BEAMS.map((i) => (
               <i
                 key={i}
@@ -101,31 +101,31 @@ export default function GiftDrawAnimation({ open, onComplete }: Props) {
             ))}
           </span>
 
-          <span className={styles.body}>
-            <span className={styles.ribbon} />
-            <span className={styles.innerLight} />
+          <span className="gift-anim-body">
+            <span className="gift-anim-ribbon" />
+            <span className="gift-anim-inner-light" />
           </span>
 
-          <span className={styles.lidGroup}>
-            <span className={styles.lid} />
-            <span className={styles.bow}>
+          <span className="gift-anim-lid-group">
+            <span className="gift-anim-lid" />
+            <span className="gift-anim-bow">
               <i />
               <i />
               <b />
             </span>
           </span>
 
-          <span className={styles.mini}>
-            <span className={styles.miniBody} />
-            <span className={styles.miniLid} />
-            <span className={styles.miniBow}>
+          <span className="gift-anim-mini">
+            <span className="gift-anim-mini-body" />
+            <span className="gift-anim-mini-lid" />
+            <span className="gift-anim-mini-bow">
               <i />
               <i />
               <b />
             </span>
           </span>
 
-          <span className={styles.confetti}>
+          <span className="gift-anim-confetti">
             {CONFETTI.map((piece, i) => (
               <i
                 key={i}
