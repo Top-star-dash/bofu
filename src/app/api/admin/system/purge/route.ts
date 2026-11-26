@@ -15,9 +15,6 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ message: "请先登录后台" }, { status: 401 });
   }
-  if (!session.isSuperAdmin) {
-    return NextResponse.json({ message: "仅超级管理员可执行数据清理" }, { status: 403 });
-  }
 
   const body = (await request.json().catch(() => ({}))) as {
     scope?: string;
@@ -36,11 +33,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "请输入当前账号密码" }, { status: 400 });
   }
 
+  // 会话声明 + 数据库实查双重确认，防止 JWT 过期前被降权后仍能清理
   const admin = await prisma.adminUser.findUnique({
     where: { id: session.sub },
-    select: { passwordHash: true },
+    select: { passwordHash: true, isSuperAdmin: true, status: true },
   });
-  if (!admin || !(await verifyPassword(body.password, admin.passwordHash))) {
+  if (
+    !admin ||
+    admin.status !== "ACTIVE" ||
+    !admin.isSuperAdmin ||
+    !session.isSuperAdmin
+  ) {
+    return NextResponse.json(
+      { message: "仅超级管理员可执行数据清理" },
+      { status: 403 },
+    );
+  }
+  if (!(await verifyPassword(body.password, admin.passwordHash))) {
     return NextResponse.json({ message: "密码不正确，已取消清理" }, { status: 400 });
   }
 
