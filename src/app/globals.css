@@ -1674,6 +1674,13 @@ button {
   gap: 8px;
 }
 
+.prize-line-meta {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
 .redeem-badge {
   flex: 0 0 auto;
   padding: 2px 8px;
@@ -1763,14 +1770,22 @@ button {
 }
 
 .redeem-qr-toggle {
-  padding: 7px 14px;
+  flex: 0 0 auto;
+  padding: 2px 8px;
   border: 1px solid #e0a86a;
   border-radius: 999px;
   color: #8f281f;
   background: white;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-style: normal;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+.redeem-qr-toggle[aria-expanded="true"] {
+  color: white;
+  background: #c45c3e;
+  border-color: #c45c3e;
 }
 
 .redeem-qr img {

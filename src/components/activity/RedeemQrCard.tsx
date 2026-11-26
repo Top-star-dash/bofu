@@ -4,9 +4,14 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { buildRedeemAdminUrl } from "@/lib/redeem-code";
 
-/** 客户待核销奖品：默认收起，点击后展开指向后台核销台的二维码 */
-export default function RedeemQrCard({ code }: { code: string }) {
-  const [open, setOpen] = useState(false);
+/** 待核销二维码面板；展开由外层「二维码」按钮控制 */
+export default function RedeemQrCard({
+  code,
+  open,
+}: {
+  code: string;
+  open: boolean;
+}) {
   const [dataUrl, setDataUrl] = useState("");
   const [failed, setFailed] = useState(false);
 
@@ -30,29 +35,21 @@ export default function RedeemQrCard({ code }: { code: string }) {
     };
   }, [open, code, dataUrl, failed]);
 
+  if (!open) return null;
+
   return (
-    <div className={`redeem-qr${open ? " is-open" : ""}`}>
-      <button
-        type="button"
-        className="redeem-qr-toggle"
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        {open ? "收起核销二维码" : "出示核销二维码"}
-      </button>
-      {open ? (
-        failed ? (
-          <p className="redeem-tip">二维码生成失败，请出示核销码</p>
-        ) : !dataUrl ? (
-          <p className="redeem-tip">核销二维码生成中…</p>
-        ) : (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={dataUrl} alt="核销二维码" />
-            <small>到店出示此码，由工作人员扫码核销</small>
-          </>
-        )
-      ) : null}
+    <div className="redeem-qr is-open">
+      {failed ? (
+        <p className="redeem-tip">二维码生成失败，请出示核销码</p>
+      ) : !dataUrl ? (
+        <p className="redeem-tip">核销二维码生成中…</p>
+      ) : (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={dataUrl} alt="核销二维码" />
+          <small>到店出示此码，由工作人员扫码核销</small>
+        </>
+      )}
     </div>
   );
 }

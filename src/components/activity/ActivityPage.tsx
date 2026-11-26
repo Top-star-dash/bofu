@@ -102,6 +102,8 @@ export default function ActivityPage({
   const [redeemPassword, setRedeemPassword] = useState("");
   const [redeemBusy, setRedeemBusy] = useState(false);
   const [redeemError, setRedeemError] = useState("");
+  /** 当前展开核销二维码的核销码；null 表示全部收起 */
+  const [qrOpenCode, setQrOpenCode] = useState<string | null>(null);
   const [prizeTab, setPrizeTab] = useState<"PENDING" | "REDEEMED" | "EXPIRED" | "NO_WIN">("PENDING");
   const [lastDraw, setLastDraw] = useState<PrizeRecordClient | null>(null);
   const [imagePreview, setImagePreview] = useState<{
@@ -730,7 +732,7 @@ export default function ActivityPage({
         <section className="content-card prize-section" aria-labelledby="prizes-title" data-stay="prizes">
           <div className="section-heading">
             <h2>奖品展示</h2>
-            <h3 id="prizes-title">幸运好礼，100%中奖</h3>
+            {/* <h3 id="prizes-title">幸运好礼，100%中奖</h3> */}
           </div>
           {firstPrize && (
             <article className="first-prize">
@@ -1208,18 +1210,37 @@ export default function ActivityPage({
                       <strong>
                         {lastDraw.prizeLevel} · {lastDraw.prizeName}
                       </strong>
-                      <em
-                        className={`redeem-badge redeem-${lastDraw.redeemStatus.toLowerCase()}`}
-                      >
-                        {lastDraw.isWin
-                          ? REDEEM_LABELS[lastDraw.redeemStatus] ||
-                            lastDraw.redeemStatus
-                          : "未中奖"}
-                      </em>
+                      <div className="prize-line-meta">
+                        <em
+                          className={`redeem-badge redeem-${lastDraw.redeemStatus.toLowerCase()}`}
+                        >
+                          {lastDraw.isWin
+                            ? REDEEM_LABELS[lastDraw.redeemStatus] ||
+                              lastDraw.redeemStatus
+                            : "未中奖"}
+                        </em>
+                        {lastDraw.isWin &&
+                          lastDraw.redeemStatus === "PENDING" && (
+                            <button
+                              type="button"
+                              className="redeem-qr-toggle"
+                              aria-expanded={qrOpenCode === lastDraw.redeemCode}
+                              onClick={() =>
+                                setQrOpenCode((prev) =>
+                                  prev === lastDraw.redeemCode
+                                    ? null
+                                    : lastDraw.redeemCode,
+                                )
+                              }
+                            >
+                              二维码
+                            </button>
+                          )}
+                      </div>
                     </div>
                     {lastDraw.isWin && (
                       <div className="redeem-code">
-                        <small>核销码</small>
+                        {/* <small>核销码</small> */}
                         <b>{lastDraw.redeemCode}</b>
                         <button
                           type="button"
@@ -1230,7 +1251,10 @@ export default function ActivityPage({
                       </div>
                     )}
                     {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
-                      <RedeemQrCard code={lastDraw.redeemCode} />
+                      <RedeemQrCard
+                        code={lastDraw.redeemCode}
+                        open={qrOpenCode === lastDraw.redeemCode}
+                      />
                     )}
                     {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
                       <p className="redeem-tip">
@@ -1327,6 +1351,7 @@ export default function ActivityPage({
                         setPrizeTab(tab.key);
                         setRedeemTarget(null);
                         setRedeemError("");
+                        setQrOpenCode(null);
                       }}
                     >
                       {tab.label}
@@ -1346,11 +1371,32 @@ export default function ActivityPage({
                             <strong>
                               {item.prizeLevel} · {item.prizeName}
                             </strong>
-                            <em
-                              className={`redeem-badge redeem-${item.redeemStatus.toLowerCase()}`}
-                            >
-                              {status}
-                            </em>
+                            <div className="prize-line-meta">
+                              <em
+                                className={`redeem-badge redeem-${item.redeemStatus.toLowerCase()}`}
+                              >
+                                {status}
+                              </em>
+                              {item.isWin &&
+                                item.redeemStatus === "PENDING" && (
+                                  <button
+                                    type="button"
+                                    className="redeem-qr-toggle"
+                                    aria-expanded={
+                                      qrOpenCode === item.redeemCode
+                                    }
+                                    onClick={() =>
+                                      setQrOpenCode((prev) =>
+                                        prev === item.redeemCode
+                                          ? null
+                                          : item.redeemCode,
+                                      )
+                                    }
+                                  >
+                                    二维码
+                                  </button>
+                                )}
+                            </div>
                           </div>
                           {item.isWin && (
                             <div className="redeem-code">
@@ -1365,11 +1411,14 @@ export default function ActivityPage({
                             </div>
                           )}
                           {item.isWin && item.redeemStatus === "PENDING" && (
-                            <RedeemQrCard code={item.redeemCode} />
+                            <RedeemQrCard
+                              code={item.redeemCode}
+                              open={qrOpenCode === item.redeemCode}
+                            />
                           )}
-                          <span>
+                          {/* <span>
                             {new Date(item.createdAt).toLocaleString("zh-CN")}
-                          </span>
+                          </span> */}
                           {item.isWin && item.redeemStatus === "PENDING" && (
                             <p className="redeem-tip">
                               到访请出示二维码或核销码，现场核销后失效
