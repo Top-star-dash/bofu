@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, Fragment, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PERMISSION_MODULES } from "@/lib/permissions";
 
@@ -12,8 +12,65 @@ type UserRow = {
   isSuperAdmin: boolean;
   status: string;
   permissions: string[];
-  newPassword?: string;
 };
+
+const FIELD =
+  "rounded-lg border border-[#e4c69f] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#b83224] focus:ring-2 focus:ring-[#b832241a]";
+
+function permissionLabel(user: UserRow) {
+  if (user.isSuperAdmin) return "全部";
+  if (!user.permissions.length) return "无";
+  return user.permissions
+    .map(
+      (code) =>
+        PERMISSION_MODULES.find((item) => item.code === code)?.name || code,
+    )
+    .join("、");
+}
+
+function Modal({
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#2a150ccc] p-4 pt-16"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="m-0 text-[15px] font-bold text-[#3a2418]">{title}</h3>
+            {subtitle ? (
+              <p className="m-0 mt-1 text-[12px] text-[#8a6c5b]">{subtitle}</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            aria-label="关闭"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#fff2df] text-[16px] leading-none text-[#8f281f] hover:bg-[#ffe6b8]"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+        <div className="mt-4">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function UsersManager({
   users,
@@ -24,239 +81,431 @@ export default function UsersManager({
 }) {
   const router = useRouter();
   const [rows, setRows] = useState<UserRow[]>(users);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [editing, setEditing] = useState<UserRow | null>(null);
+  const [permUser, setPermUser] = useState<UserRow | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [permDraft, setPermDraft] = useState<string[]>([]);
+  const [passwordDraft, setPasswordDraft] = useState("");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  function update(id: string, patch: Partial<UserRow>) {
+  function patchLocal(id: string, patch: Partial<UserRow>) {
     setRows((prev) =>
       prev.map((row) => (row.id === id ? { ...row, ...patch } : row)),
     );
   }
 
-  function togglePermission(id: string, code: string, checked: boolean) {
-    setRows((prev) =>
-      prev.map((row) =>
-        row.id === id
-          ? {
-              ...row,
-              permissions: checked
-                ? [...row.permissions.filter((item) => item !== code), code]
-                : row.permissions.filter((item) => item !== code),
-            }
-          : row,
-      ),
-    );
+  function openEdit(user: UserRow) {
+    setError("");
+    setEditing(user);
+    setPasswordDraft("");
   }
 
-  async function save(row: UserRow) {
+  function openPermission(user: UserRow) {
     setError("");
-    setMessage("");
+    setPermUser(user);
+    setPermDraft([...user.permissions]);
+  }
+
+  async function sendPatch(payload: Record<string, unknown>) {
     const response = await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: row.id,
-        name: row.name,
-        phone: row.phone || null,
-        status: row.status,
-        permissions: row.permissions,
-        ...(row.newPassword ? { password: row.newPassword } : {}),
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setError(data.message || "保存失败");
-      return;
+    if (!response.ok) throw new Error(data.message || "保存失败");
+    return data;
+  }
+
+  async function saveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing) return;
+    const form = new FormData(event.currentTarget);
+    const patch: Partial<UserRow> = {
+      name: String(form.get("name") || "").trim(),
+      phone: String(form.get("phone") || "").trim(),
+      status: String(form.get("status") || "ACTIVE"),
+    };
+    setBusy(true);
+    setError("");
+    try {
+      await sendPatch({
+        id: editing.id,
+        ...patch,
+        phone: patch.phone || null,
+        permissions: editing.permissions,
+        ...(passwordDraft ? { password: passwordDraft } : {}),
+      });
+      patchLocal(editing.id, patch);
+      setEditing(null);
+      setPasswordDraft("");
+      setMessage(`已保存：${editing.username}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setBusy(false);
     }
-    update(row.id, { newPassword: "" });
-    setMessage(`已保存：${row.username}`);
-    router.refresh();
+  }
+
+  async function savePermissions() {
+    if (!permUser) return;
+    setBusy(true);
+    setError("");
+    try {
+      await sendPatch({
+        id: permUser.id,
+        name: permUser.name,
+        phone: permUser.phone || null,
+        status: permUser.status,
+        permissions: permDraft,
+      });
+      patchLocal(permUser.id, { permissions: permDraft });
+      setPermUser(null);
+      setMessage(`权限已更新：${permUser.username}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "权限保存失败");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
-    setMessage("");
     const formEl = event.currentTarget;
     const form = new FormData(formEl);
     const permissions = PERMISSION_MODULES.map((item) => item.code).filter(
       (code) => form.get(`perm_${code}`) === "on",
     );
-
-    const response = await fetch("/api/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: form.get("username"),
-        name: form.get("name"),
-        phone: form.get("phone") || undefined,
-        password: form.get("password"),
-        permissions,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data.message || "创建失败");
-      return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: form.get("username"),
+          name: form.get("name"),
+          phone: form.get("phone") || undefined,
+          password: form.get("password"),
+          permissions,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || "创建失败");
+      setCreating(false);
+      setMessage("用户已创建");
+      formEl.reset();
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "创建失败");
+    } finally {
+      setBusy(false);
     }
-    setMessage("用户已创建");
-    formEl.reset();
-    router.refresh();
+  }
+
+  async function toggleStatus(user: UserRow) {
+    const next = user.status === "ACTIVE" ? "DISABLED" : "ACTIVE";
+    setError("");
+    try {
+      await sendPatch({
+        id: user.id,
+        name: user.name,
+        phone: user.phone || null,
+        status: next,
+        permissions: user.permissions,
+      });
+      patchLocal(user.id, { status: next });
+      setMessage(`${user.username} 已${next === "ACTIVE" ? "启用" : "停用"}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "状态更新失败");
+    }
   }
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
-      {error && <p className="error-text">{error}</p>}
-      {message && <p className="ok-text">{message}</p>}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="m-0 text-[15px] font-bold">后台用户</h3>
+        <button
+          type="button"
+          className="admin-btn"
+          onClick={() => {
+            setError("");
+            setCreating(true);
+          }}
+        >
+          新增用户
+        </button>
+      </div>
+
+      {error && !editing && !permUser && !creating ? (
+        <p className="error-text m-0">{error}</p>
+      ) : null}
+      {message ? <p className="ok-text m-0">{message}</p> : null}
 
       <div className="admin-card">
-        <h3 style={{ marginTop: 0 }}>后台用户</h3>
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>账号</th>
-              <th>姓名</th>
-              <th>手机号</th>
-              <th>状态</th>
-              <th>权限</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((user) => (
-              <Fragment key={user.id}>
-                <tr>
-                  <td>{user.username}</td>
-                  <td>
-                    <input
-                      className="admin-inline-input"
-                      value={user.name}
-                      onChange={(event) => update(user.id, { name: event.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="admin-inline-input"
-                      value={user.phone}
-                      onChange={(event) => update(user.id, { phone: event.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      className="admin-inline-input"
-                      value={user.status}
-                      onChange={(event) => update(user.id, { status: event.target.value })}
+        <div className="overflow-x-auto">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th className="whitespace-nowrap">账号</th>
+                <th className="whitespace-nowrap">姓名</th>
+                <th className="whitespace-nowrap">手机号</th>
+                <th className="whitespace-nowrap">状态</th>
+                <th>权限</th>
+                <th className="whitespace-nowrap">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((user) => (
+                <tr key={user.id}>
+                  <td className="whitespace-nowrap font-bold">{user.username}</td>
+                  <td className="whitespace-nowrap">{user.name}</td>
+                  <td className="whitespace-nowrap">{user.phone || "-"}</td>
+                  <td className="whitespace-nowrap">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[12px] ${
+                        user.status === "ACTIVE"
+                          ? "bg-[#e8f5ea] text-[#1f7a34]"
+                          : "bg-[#f4ece5] text-[#8a6c5b]"
+                      }`}
                     >
-                      <option value="ACTIVE">启用</option>
-                      <option value="DISABLED">停用</option>
-                    </select>
+                      {user.status === "ACTIVE" ? "启用" : "停用"}
+                    </span>
+                  </td>
+                  <td className="max-w-[280px] text-[12px] text-[#5c4433]">
+                    {permissionLabel(user)}
                   </td>
                   <td>
-                    {user.isSuperAdmin
-                      ? "全部"
-                      : user.permissions.length
-                        ? user.permissions.join("、")
-                        : "无"}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="admin-btn secondary"
-                      onClick={() => setExpanded(expanded === user.id ? null : user.id)}
-                    >
-                      {expanded === user.id ? "收起" : "编辑"}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="admin-btn secondary whitespace-nowrap"
+                        onClick={() => openEdit(user)}
+                      >
+                        编辑
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn secondary whitespace-nowrap"
+                        onClick={() => openPermission(user)}
+                        disabled={user.isSuperAdmin}
+                      >
+                        权限修改
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn secondary whitespace-nowrap"
+                        onClick={() => toggleStatus(user)}
+                        disabled={user.id === currentUserId}
+                      >
+                        {user.status === "ACTIVE" ? "停用" : "启用"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
-                {expanded === user.id && (
-                  <tr className="detail-row">
-                    <td colSpan={6}>
-                      <div className="perm-grid">
-                        {PERMISSION_MODULES.map((item) => (
-                          <label key={item.code}>
-                            <input
-                              type="checkbox"
-                              checked={
-                                user.isSuperAdmin || user.permissions.includes(item.code)
-                              }
-                              disabled={user.isSuperAdmin}
-                              onChange={(event) =>
-                                togglePermission(user.id, item.code, event.target.checked)
-                              }
-                            />
-                            {item.name}
-                          </label>
-                        ))}
-                      </div>
-                      <div className="admin-field-row" style={{ marginTop: 12 }}>
-                        <label>
-                          重置密码（留空不改）
-                          <input
-                            type="password"
-                            minLength={8}
-                            value={user.newPassword ?? ""}
-                            onChange={(event) =>
-                              update(user.id, { newPassword: event.target.value })
-                            }
-                            autoComplete="new-password"
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          className="admin-btn"
-                          onClick={() => save(user)}
-                        >
-                          保存用户
-                        </button>
-                      </div>
-                      {user.id === currentUserId && (
-                        <p className="redeem-hint">这是当前登录账号，不能停用。</p>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
+              ))}
+              {!rows.length && (
+                <tr>
+                  <td colSpan={6}>还没有后台用户</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="m-0 mt-3 text-[12px] text-[#8a6c5b]">
+          超级管理员权限不可修改；当前登录账号不能停用。
+        </p>
       </div>
 
-      <div className="admin-card">
-        <h3 style={{ marginTop: 0 }}>新增用户并赋予权限</h3>
-        <form className="admin-form" onSubmit={onCreate}>
-          <label>
-            登录账号
-            <input name="username" required minLength={3} />
-          </label>
-          <label>
-            姓名
-            <input name="name" required />
-          </label>
-          <label>
-            手机号
-            <input name="phone" />
-          </label>
-          <label>
-            初始密码
-            <input name="password" type="password" required minLength={8} />
-          </label>
-          <div>
-            <strong>权限模块</strong>
-            <div className="perm-grid" style={{ marginTop: 8 }}>
-              {PERMISSION_MODULES.map((item) => (
-                <label key={item.code}>
-                  <input type="checkbox" name={`perm_${item.code}`} />
-                  {item.name}
-                </label>
-              ))}
+      {editing && (
+        <Modal
+          title="编辑用户"
+          subtitle={`账号 ${editing.username}`}
+          onClose={() => setEditing(null)}
+        >
+          {error ? <p className="error-text m-0 mb-3">{error}</p> : null}
+          <form className="flex flex-col gap-3" onSubmit={saveEdit}>
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold">
+              姓名
+              <input
+                name="name"
+                required
+                defaultValue={editing.name}
+                className={`${FIELD} font-normal`}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold">
+              手机号
+              <input
+                name="phone"
+                defaultValue={editing.phone}
+                className={`${FIELD} font-normal`}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold">
+              状态
+              <select
+                name="status"
+                defaultValue={editing.status}
+                className={`${FIELD} font-normal`}
+              >
+                <option value="ACTIVE">启用</option>
+                <option value="DISABLED">停用</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold">
+              重置密码（留空不改）
+              <input
+                type="password"
+                minLength={8}
+                value={passwordDraft}
+                onChange={(event) => setPasswordDraft(event.target.value)}
+                autoComplete="new-password"
+                placeholder="至少 8 位"
+                className={`${FIELD} font-normal`}
+              />
+            </label>
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                className="admin-btn secondary"
+                onClick={() => setEditing(null)}
+              >
+                取消
+              </button>
+              <button type="submit" className="admin-btn" disabled={busy}>
+                {busy ? "保存中…" : "保存"}
+              </button>
             </div>
-          </div>
-          <div className="admin-actions">
-            <button type="submit">创建用户</button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </Modal>
+      )}
+
+      {permUser && (
+        <Modal
+          title="权限修改"
+          subtitle={`${permUser.name} · @${permUser.username}`}
+          onClose={() => setPermUser(null)}
+        >
+          {error ? <p className="error-text m-0 mb-3">{error}</p> : null}
+          {permUser.isSuperAdmin ? (
+            <p className="m-0 text-[13px] text-[#8a6c5b]">
+              超级管理员默认拥有全部权限，无需单独配置。
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                {PERMISSION_MODULES.map((item) => (
+                  <label
+                    key={item.code}
+                    className="flex items-center gap-2 text-[13px] font-normal"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={permDraft.includes(item.code)}
+                      onChange={(event) =>
+                        setPermDraft((prev) =>
+                          event.target.checked
+                            ? [...prev.filter((code) => code !== item.code), item.code]
+                            : prev.filter((code) => code !== item.code),
+                        )
+                      }
+                    />
+                    {item.name}
+                  </label>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  className="admin-btn secondary"
+                  onClick={() => setPermUser(null)}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn"
+                  disabled={busy}
+                  onClick={savePermissions}
+                >
+                  {busy ? "保存中…" : "保存权限"}
+                </button>
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
+
+      {creating && (
+        <Modal
+          title="新增用户"
+          subtitle="创建后台账号并分配权限"
+          onClose={() => setCreating(false)}
+        >
+          {error ? <p className="error-text m-0 mb-3">{error}</p> : null}
+          <form className="flex flex-col gap-3" onSubmit={onCreate}>
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold">
+              登录账号
+              <input
+                name="username"
+                required
+                minLength={3}
+                className={`${FIELD} font-normal`}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold">
+              姓名
+              <input name="name" required className={`${FIELD} font-normal`} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold">
+              手机号
+              <input name="phone" className={`${FIELD} font-normal`} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold">
+              初始密码
+              <input
+                name="password"
+                type="password"
+                required
+                minLength={8}
+                className={`${FIELD} font-normal`}
+              />
+            </label>
+            <div>
+              <strong className="text-[13px]">权限模块</strong>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {PERMISSION_MODULES.map((item) => (
+                  <label
+                    key={item.code}
+                    className="flex items-center gap-2 text-[13px] font-normal"
+                  >
+                    <input type="checkbox" name={`perm_${item.code}`} />
+                    {item.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                className="admin-btn secondary"
+                onClick={() => setCreating(false)}
+              >
+                取消
+              </button>
+              <button type="submit" className="admin-btn" disabled={busy}>
+                {busy ? "创建中…" : "创建用户"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

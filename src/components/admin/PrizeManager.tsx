@@ -129,7 +129,7 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
         </button>
       </div>
 
-      <div className="admin-table-scroll">
+      <div className="overflow-x-auto">
         <table className="admin-table">
           <thead>
             <tr>

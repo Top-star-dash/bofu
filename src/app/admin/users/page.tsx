@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import AdminShell, { firstAllowedHref } from "@/components/admin/AdminShell";
+import DataPurgePanel from "@/components/admin/DataPurgePanel";
 import UsersManager from "@/components/admin/UsersManager";
 import { canUse } from "@/lib/admin-guard";
 import { getAdminSession } from "@/lib/auth";
@@ -37,7 +38,16 @@ export default async function AdminUsersPage() {
           permissions: user.permissions.map((item) => item.permission.code),
         }))}
       />
+
+      {session.isSuperAdmin ? (
+        <div className="admin-card">
+          <h3 className="m-0 text-[15px] font-bold">数据清理</h3>
+          <p className="m-0 mt-1 mb-3 text-[12px] text-[#8a6c5b]">
+            活动上线前清空测试数据。仅超级管理员可见，需账号密码与确认短语双重校验。
+          </p>
+          <DataPurgePanel />
+        </div>
+      ) : null}
     </AdminShell>
   );
 }
-

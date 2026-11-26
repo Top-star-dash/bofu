@@ -36,6 +36,7 @@ export default function ConsultantManager({
   const [message, setMessage] = useState("");
   const [importing, setImporting] = useState(false);
   const [importIssues, setImportIssues] = useState<string[]>([]);
+  const [qrRow, setQrRow] = useState<ConsultantRow | null>(null);
 
   function update(id: string, patch: Partial<ConsultantRow>) {
     setRows((prev) =>
@@ -203,12 +204,36 @@ export default function ConsultantManager({
     }
   }
 
+  function promoLink(code: string) {
+    return `${origin}/?c=${code}`;
+  }
+
+  function qrSrc(code: string, download = false) {
+    const query = `code=${encodeURIComponent(code)}&format=png${download ? "&download=1" : ""}`;
+    return `/api/admin/consultants/qrcode?${query}`;
+  }
+
   function copyLink(code: string) {
-    const link = `${origin}/?c=${code}`;
-    navigator.clipboard
-      .writeText(link)
-      .then(() => setMessage(`推广链接已复制：${link}`))
-      .catch(() => setError(link));
+    const link = promoLink(code);
+    const done = () => setMessage(`推广链接已复制：${link}`);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(link).then(done).catch(() => setError(link));
+      return;
+    }
+    // 非安全上下文（http）下 clipboard 不可用，退化为临时文本框
+    const input = document.createElement("textarea");
+    input.value = link;
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    input.select();
+    try {
+      document.execCommand("copy");
+      done();
+    } catch {
+      setError(link);
+    }
+    document.body.removeChild(input);
   }
 
   const tabs = [
@@ -241,7 +266,7 @@ export default function ConsultantManager({
       {tab === "list" && (
       <div className="admin-card">
         <h3 style={{ marginTop: 0 }}>顾问列表</h3>
-        <div className="admin-table-scroll">
+        <div className="overflow-x-auto">
           <table className="admin-table">
             <thead>
               <tr>
@@ -309,17 +334,25 @@ export default function ConsultantManager({
                         }
                       />
                     </td>
-                    <td className="promo-cell">
-                      <button type="button" onClick={() => copyLink(row.shareCode)}>
-                        复制链接
-                      </button>
-                      <a
-                        href={`/api/admin/consultants/qrcode?code=${encodeURIComponent(row.shareCode)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        二维码
-                      </a>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button
+                          type="button"
+                          className="admin-btn secondary"
+                          style={{ whiteSpace: "nowrap", padding: "6px 10px", fontSize: 12 }}
+                          onClick={() => copyLink(row.shareCode)}
+                        >
+                          复制链接
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-btn secondary"
+                          style={{ whiteSpace: "nowrap", padding: "6px 10px", fontSize: 12 }}
+                          onClick={() => setQrRow(row)}
+                        >
+                          链接二维码
+                        </button>
+                      </div>
                     </td>
                     <td>
                       <button
@@ -523,6 +556,64 @@ export default function ConsultantManager({
             <button type="submit">开始导入</button>
           </form>
       </div>
+      )}
+
+      {qrRow && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2a150ccc] p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setQrRow(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="m-0 text-[15px] font-bold text-[#3a2418]">推广二维码</h3>
+                <p className="m-0 mt-1 text-[12px] text-[#8a6c5b]">
+                  {qrRow.name} · 分享码 {qrRow.shareCode}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="关闭"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#fff2df] text-[16px] leading-none text-[#8f281f] hover:bg-[#ffe6b8]"
+                onClick={() => setQrRow(null)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="mt-4 flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrSrc(qrRow.shareCode)}
+                alt={`${qrRow.name} 的推广二维码`}
+                className="h-56 w-56 rounded-xl border border-[#f0e2d2] bg-white object-contain p-2"
+              />
+            </div>
+            <p className="mt-3 break-all text-center text-[12px] text-[#8a6c5b]">
+              {promoLink(qrRow.shareCode)}
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <a
+                className="admin-btn"
+                href={qrSrc(qrRow.shareCode, true)}
+                download={`qrcode-${qrRow.shareCode}.png`}
+              >
+                下载二维码
+              </a>
+              <button
+                type="button"
+                className="admin-btn secondary"
+                onClick={() => copyLink(qrRow.shareCode)}
+              >
+                复制链接
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

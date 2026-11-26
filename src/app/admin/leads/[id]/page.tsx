@@ -3,7 +3,12 @@ export const instant = false;
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
-import LeadDetail from "@/components/admin/LeadDetail";
+import LeadDetailTabs, {
+  type InfoItem,
+  type LogRow,
+  type SummaryItem,
+  type TimelineRow,
+} from "@/components/admin/LeadDetailTabs";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
@@ -36,7 +41,7 @@ export default async function AdminLeadDetailPage({
         include: {
           consultant: true,
           drawRecords: { orderBy: { createdAt: "desc" } },
-          browseEvents: { orderBy: { createdAt: "desc" }, take: 50 },
+          browseEvents: { orderBy: { createdAt: "desc" }, take: 200 },
           assistsReceived: { orderBy: { createdAt: "desc" } },
           assistsGiven: { orderBy: { createdAt: "desc" } },
           inviter: { select: { nickname: true } },
@@ -96,151 +101,71 @@ export default async function AdminLeadDetailPage({
   }
   timeline.sort((a, b) => b.at.getTime() - a.at.getTime());
 
+  const timelineRows: TimelineRow[] = timeline.map((item) => ({
+    at: item.at.toLocaleString("zh-CN"),
+    title: item.title,
+    detail: item.detail || "",
+  }));
+
+  const logRows: LogRow[] = operationLogs.map((log) => ({
+    at: log.createdAt.toLocaleString("zh-CN"),
+    action: log.action,
+    detail: log.detail || "",
+  }));
+
+  const summary: SummaryItem[] = [
+    { label: "姓名", value: lead.name },
+    {
+      label: "手机号",
+      value: lead.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2"),
+    },
+    { label: "当前分层", value: `${lead.tier} 类` },
+    { label: "归属顾问", value: lead.consultant?.name || "未归属" },
+    { label: "抽奖次数", value: String(customer.drawRecords.length) },
+    { label: "邀请好友", value: String(customer._count.invitees) },
+  ];
+
+  const wechatInfo: InfoItem[] = [
+    { label: "昵称", value: customer.nickname || "未授权资料" },
+    { label: "OpenID", value: customer.openid },
+    { label: "UnionID", value: customer.unionid || "-" },
+    { label: "邀请人", value: customer.inviter?.nickname || "无（自然访问）" },
+  ];
+
+  const profileInfo: InfoItem[] = [
+    { label: "意向户型", value: lead.intentLayout || "-" },
+    { label: "意向面积", value: lead.intentArea || "-" },
+    { label: "关注点", value: lead.focusFactors || "-" },
+    {
+      label: "预计到访",
+      value: lead.visitDate ? lead.visitDate.toLocaleDateString("zh-CN") : "-",
+    },
+    { label: "留资时间", value: lead.createdAt.toLocaleString("zh-CN") },
+    { label: "楼盘停留", value: `${customer.propertyStaySec} 秒` },
+  ];
+
   return (
     <AdminShell session={session} current="/admin/leads">
-      <h2 style={{ marginTop: 0 }}>线索详情</h2>
-      <p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 style={{ marginTop: 0 }}>线索详情</h2>
         <Link className="admin-btn secondary" href="/admin/leads">
           返回线索列表
         </Link>
-      </p>
-
-      <div className="admin-grid">
-        <article>
-          <span>姓名</span>
-          <strong>{lead.name}</strong>
-        </article>
-        <article>
-          <span>手机号</span>
-          <strong>{lead.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")}</strong>
-        </article>
-        <article>
-          <span>当前分层</span>
-          <strong>{lead.tier}</strong>
-        </article>
-        <article>
-          <span>归属顾问</span>
-          <strong>{lead.consultant?.name || "未归属"}</strong>
-        </article>
-        <article>
-          <span>抽奖次数</span>
-          <strong>{customer.drawRecords.length}</strong>
-        </article>
-        <article>
-          <span>邀请好友</span>
-          <strong>{customer._count.invitees}</strong>
-        </article>
       </div>
 
-      <div className="admin-card">
-        <h3 style={{ marginTop: 0 }}>微信用户</h3>
-        <div className="flex flex-wrap items-start gap-4">
-          {customer.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={customer.avatarUrl}
-              alt={customer.nickname || "微信头像"}
-              className="h-16 w-16 rounded-full border border-[#f0e2d2] object-cover"
-            />
-          ) : (
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-[#fff2df] text-[12px] text-[#9b7d64]">
-              无头像
-            </div>
-          )}
-          <p style={{ margin: 0 }}>
-            昵称：{customer.nickname || "未授权资料"}
-            <br />
-            OpenID：{customer.openid}
-            <br />
-            UnionID：{customer.unionid || "-"}
-            <br />
-            邀请人：{customer.inviter?.nickname || "无（自然访问）"}
-          </p>
-        </div>
-      </div>
-
-      <div className="admin-card">
-        <h3 style={{ marginTop: 0 }}>留资信息</h3>
-        <p>
-          意向户型：{lead.intentLayout || "-"}
-          <br />
-          意向面积：{lead.intentArea || "-"}
-          <br />
-          关注点：{lead.focusFactors || "-"}
-          <br />
-          预计到访：
-          {lead.visitDate ? lead.visitDate.toLocaleDateString("zh-CN") : "-"}
-          <br />
-          留资时间：{lead.createdAt.toLocaleString("zh-CN")}
-          <br />
-          楼盘停留：{customer.propertyStaySec} 秒
-        </p>
-      </div>
-
-      <div className="admin-card">
-        <h3 style={{ marginTop: 0 }}>备注 / 分层 / 改绑</h3>
-        <LeadDetail
-          leadId={lead.id}
-          remark={lead.remark || ""}
-          tier={lead.tier}
-          consultantId={lead.consultantId || ""}
-          consultants={consultants}
-        />
-      </div>
-
-      <div className="admin-card">
-        <h3 style={{ marginTop: 0 }}>行为轨迹</h3>
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>时间</th>
-              <th>事件</th>
-              <th>说明</th>
-            </tr>
-          </thead>
-          <tbody>
-            {timeline.map((item, index) => (
-              <tr key={`${item.at.toISOString()}-${index}`}>
-                <td>{item.at.toLocaleString("zh-CN")}</td>
-                <td>{item.title}</td>
-                <td>{item.detail || "-"}</td>
-              </tr>
-            ))}
-            {!timeline.length && (
-              <tr>
-                <td colSpan={3}>暂无轨迹</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="admin-card">
-        <h3 style={{ marginTop: 0 }}>改绑/备注操作日志</h3>
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>时间</th>
-              <th>操作</th>
-              <th>说明</th>
-            </tr>
-          </thead>
-          <tbody>
-            {operationLogs.map((log) => (
-              <tr key={log.id}>
-                <td>{log.createdAt.toLocaleString("zh-CN")}</td>
-                <td>{log.action}</td>
-                <td>{log.detail || "-"}</td>
-              </tr>
-            ))}
-            {!operationLogs.length && (
-              <tr>
-                <td colSpan={3}>暂无操作记录</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <LeadDetailTabs
+        summary={summary}
+        avatarUrl={customer.avatarUrl || ""}
+        wechat={wechatInfo}
+        profile={profileInfo}
+        leadId={lead.id}
+        remark={lead.remark || ""}
+        tier={lead.tier}
+        consultantId={lead.consultantId || ""}
+        consultants={consultants}
+        timeline={timelineRows}
+        logs={logRows}
+      />
     </AdminShell>
   );
 }
