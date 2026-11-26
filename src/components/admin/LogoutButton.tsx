@@ -1,14 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 export default function LogoutButton() {
-  const router = useRouter();
-
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
-    router.replace("/admin/login");
-    router.refresh();
+    // 硬跳转，避免软导航仍带着已清 cookie 前的后台缓存
+    window.location.assign("/admin/login");
   }
 
   return (

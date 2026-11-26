@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 
 const LOGIN_LOGOS = [
   { src: "/activity/logo-future.webp", alt: "未来社区" },
@@ -9,7 +8,6 @@ const LOGIN_LOGOS = [
 ];
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,13 +25,13 @@ export default function AdminLoginPage() {
       }),
     });
     const data = await response.json();
-    setLoading(false);
     if (!response.ok) {
+      setLoading(false);
       setError(data.message || "登录失败");
       return;
     }
-    router.replace("/admin");
-    router.refresh();
+    // 硬跳转：避免软导航沿用登录前预取的 /admin（无 cookie → 又被打回登录页）
+    window.location.assign("/admin");
   }
 
   return (
