@@ -1754,9 +1754,23 @@ button {
   align-items: center;
   gap: 6px;
   margin-top: 8px;
+}
+
+.redeem-qr.is-open {
   padding: 10px;
   border-radius: 10px;
   background: #fffaf3;
+}
+
+.redeem-qr-toggle {
+  padding: 7px 14px;
+  border: 1px solid #e0a86a;
+  border-radius: 999px;
+  color: #8f281f;
+  background: white;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .redeem-qr img {
