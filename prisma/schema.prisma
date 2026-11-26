@@ -90,7 +90,8 @@ model Activity {
   /** 顶栏 Logo，空则用内置品牌图 */
   logoUrl         String?
   logoSubUrl      String?
-  rulesHtml       String?
+  /** 规则富文本，需 Text 以容纳完整活动规则 */
+  rulesHtml       String?  @db.Text
   rulesColor      String?
   firstDrawChance Int            @default(1)
   assistChance    Int            @default(1)

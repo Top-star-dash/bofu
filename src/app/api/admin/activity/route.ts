@@ -119,17 +119,31 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const updated = await prisma.activity.update({
-    where: { id: targetId },
-    data,
-  });
+  try {
+    const updated = await prisma.activity.update({
+      where: { id: targetId },
+      data,
+    });
 
-  const changed = Object.keys(data);
-  await writeOperationLog(
-    guard.session.sub,
-    "activity.update",
-    changed.length ? `更新 ${changed.length} 项：${changed.join(",")}` : "无字段变更",
-  );
+    const changed = Object.keys(data);
+    await writeOperationLog(
+      guard.session.sub,
+      "activity.update",
+      changed.length ? `更新 ${changed.length} 项：${changed.join(",")}` : "无字段变更",
+    );
 
-  return NextResponse.json({ ok: true, activity: { id: updated.id } });
+    return NextResponse.json({ ok: true, activity: { id: updated.id } });
+  } catch (error) {
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code?: string }).code)
+        : "";
+    if (code === "P2000") {
+      return NextResponse.json(
+        { message: "规则文案过长，请缩短后再保存" },
+        { status: 400 },
+      );
+    }
+    throw error;
+  }
 }
