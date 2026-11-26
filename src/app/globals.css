@@ -1748,6 +1748,39 @@ button {
   font-size: 11px;
 }
 
+.redeem-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fffaf3;
+}
+
+.redeem-qr img {
+  display: block;
+  width: 168px;
+  height: 168px;
+  border-radius: 8px;
+  background: white;
+}
+
+.redeem-qr small {
+  color: #8a6c5b;
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.redeem-scanner {
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+  background: #111;
+}
+
 /* ===== 微信授权引导（可关闭弹窗内） ===== */
 .auth-hint {
   margin: 12px 0 0;

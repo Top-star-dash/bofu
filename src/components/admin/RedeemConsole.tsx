@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { Html5Qrcode } from "html5-qrcode";
+import { parseRedeemCodeInput } from "@/lib/redeem-code";
 
 type RedeemRecord = {
   redeemCode: string;
@@ -29,10 +31,49 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 const PASSWORD_KEY = "bofu_redeem_password";
+const SCANNER_REGION_ID = "redeem-qr-reader";
 
-export default function RedeemConsole() {
+type WxScanApi = {
+  config: (cfg: Record<string, unknown>) => void;
+  ready: (fn: () => void) => void;
+  error: (fn: (res: { errMsg?: string }) => void) => void;
+  scanQRCode: (cfg: {
+    needResult: number;
+    scanType: string[];
+    success?: (res: { resultStr?: string }) => void;
+    fail?: (res: { errMsg?: string }) => void;
+  }) => void;
+};
+
+function isWechatBrowser() {
+  return /MicroMessenger/i.test(navigator.userAgent);
+}
+
+async function loadWeixinScript() {
+  if ((window as unknown as { wx?: WxScanApi }).wx) return;
+  await new Promise<void>((resolve, reject) => {
+    const existing = document.getElementById("wechat-jssdk");
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("jssdk load fail")));
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "wechat-jssdk";
+    script.src = "https://res.wx.qq.com/open/js/jweixin-1.6.0.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("jssdk load fail"));
+    document.head.appendChild(script);
+  });
+}
+
+export default function RedeemConsole({
+  initialCode = "",
+}: {
+  initialCode?: string;
+}) {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode);
   const [password, setPassword] = useState("");
   const [record, setRecord] = useState<RedeemRecord | null>(null);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(
@@ -40,6 +81,12 @@ export default function RedeemConsole() {
   );
   const [busy, setBusy] = useState<"query" | "confirm" | null>(null);
   const codeRef = useRef<HTMLInputElement>(null);
+  const scanningRef = useRef(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  const [scanning, setScanning] = useState(false);
+  const [wxReady, setWxReady] = useState(false);
+  const [inWechat, setInWechat] = useState(false);
 
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
@@ -52,18 +99,79 @@ export default function RedeemConsole() {
 
   useEffect(() => {
     const saved = window.sessionStorage.getItem(PASSWORD_KEY);
-    // 挂载后回填本次会话内已使用的核销密码，避免现场反复输入
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setPassword(saved);
-    codeRef.current?.focus();
+    if (!initialCode) codeRef.current?.focus();
+  }, [initialCode]);
+
+  useEffect(() => {
+    setInWechat(isWechatBrowser());
   }, []);
 
-  async function submit(action: "query" | "confirm") {
+  useEffect(() => {
+    if (!inWechat) return;
+    let cancelled = false;
+    async function setupWx() {
+      try {
+        await loadWeixinScript();
+        const pageUrl = window.location.href.split("#")[0];
+        const response = await fetch(
+          `/api/wechat/jssdk?url=${encodeURIComponent(pageUrl)}`,
+        );
+        if (!response.ok || cancelled) return;
+        const config = (await response.json()) as {
+          appId: string;
+          timestamp: number;
+          nonceStr: string;
+          signature: string;
+        };
+        const wx = (window as unknown as { wx?: WxScanApi }).wx;
+        if (!wx || cancelled) return;
+        wx.config({
+          debug: false,
+          appId: config.appId,
+          timestamp: config.timestamp,
+          nonceStr: config.nonceStr,
+          signature: config.signature,
+          jsApiList: ["scanQRCode"],
+        });
+        wx.ready(() => {
+          if (!cancelled) setWxReady(true);
+        });
+        wx.error(() => {
+          if (!cancelled) setWxReady(false);
+        });
+      } catch {
+        if (!cancelled) setWxReady(false);
+      }
+    }
+    void setupWx();
+    return () => {
+      cancelled = true;
+    };
+  }, [inWechat]);
+
+  useEffect(() => {
+    return () => {
+      void stopScanner();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function submit(
+    action: "query" | "confirm",
+    overrideCode?: string,
+    overridePassword?: string,
+  ) {
     if (busy) return;
-    if (!code.trim() || !password.trim()) {
+    const parsed =
+      parseRedeemCodeInput(overrideCode ?? code) ||
+      (overrideCode ?? code).trim();
+    const nextPassword = (overridePassword ?? password).trim();
+    if (!parsed || !nextPassword) {
       setMessage({ text: "请填写核销码与核销密码", error: true });
       return;
     }
+    const redeemCode = parsed;
 
     setBusy(action);
     setMessage(null);
@@ -73,8 +181,8 @@ export default function RedeemConsole() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
-          redeemCode: code.trim(),
-          password: password.trim(),
+          redeemCode,
+          password: nextPassword,
         }),
       });
       const data = await response.json();
@@ -86,7 +194,7 @@ export default function RedeemConsole() {
         return;
       }
 
-      window.sessionStorage.setItem(PASSWORD_KEY, password.trim());
+      window.sessionStorage.setItem(PASSWORD_KEY, nextPassword);
       setMessage({
         text: action === "confirm" ? "核销成功，请交付奖品" : "查询成功",
         error: false,
@@ -103,9 +211,106 @@ export default function RedeemConsole() {
     }
   }
 
+  function applyScannedRaw(raw: string) {
+    const parsed = parseRedeemCodeInput(raw);
+    if (!parsed) {
+      setMessage({ text: "无法识别核销码，请重试或手输", error: true });
+      return;
+    }
+    setCode(parsed);
+    setRecord(null);
+    setMessage({ text: `已识别核销码 ${parsed}`, error: false });
+    const saved = window.sessionStorage.getItem(PASSWORD_KEY) || password;
+    if (saved.trim()) {
+      setPassword(saved.trim());
+      void submit("query", parsed, saved.trim());
+    } else {
+      codeRef.current?.focus();
+    }
+  }
+
+  async function stopScanner() {
+    scanningRef.current = false;
+    const scanner = scannerRef.current;
+    scannerRef.current = null;
+    if (scanner) {
+      try {
+        if (scanner.isScanning) await scanner.stop();
+        await scanner.clear();
+      } catch {
+        // ignore
+      }
+    }
+    setScanning(false);
+  }
+
+  async function startCameraScan() {
+    setMessage(null);
+    if (scanning) {
+      await stopScanner();
+      return;
+    }
+    setScanning(true);
+    scanningRef.current = true;
+    try {
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const scanner = new Html5Qrcode(SCANNER_REGION_ID);
+      scannerRef.current = scanner;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 8, qrbox: { width: 240, height: 240 } },
+        (decoded) => {
+          if (!scanningRef.current) return;
+          scanningRef.current = false;
+          void stopScanner().then(() => applyScannedRaw(decoded));
+        },
+        () => undefined,
+      );
+    } catch {
+      setScanning(false);
+      scanningRef.current = false;
+      scannerRef.current = null;
+      setMessage({
+        text: "无法打开摄像头，请检查权限或改用手输 / 微信扫一扫",
+        error: true,
+      });
+    }
+  }
+
+  function scanByWechat() {
+    const wx = (window as unknown as { wx?: WxScanApi }).wx;
+    if (!wx || !wxReady) {
+      setMessage({
+        text: "微信扫一扫暂不可用，请用摄像头扫码或手输",
+        error: true,
+      });
+      return;
+    }
+    wx.scanQRCode({
+      needResult: 1,
+      scanType: ["qrCode"],
+      success: (res) => {
+        applyScannedRaw(res.resultStr || "");
+      },
+      fail: (res) => {
+        setMessage({
+          text: res.errMsg || "微信扫一扫失败",
+          error: true,
+        });
+      },
+    });
+  }
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void submit("query");
+    const parsed = parseRedeemCodeInput(code);
+    if (parsed && parsed !== code) setCode(parsed);
+    void submit("query", parsed || code);
+  }
+
+  function onCodeBlur() {
+    const parsed = parseRedeemCodeInput(code);
+    if (parsed && parsed !== code) setCode(parsed);
   }
 
   async function changePassword(event: FormEvent<HTMLFormElement>) {
@@ -149,6 +354,16 @@ export default function RedeemConsole() {
     }
   }
 
+  // 首屏带 code 且已有密码时自动查询一次
+  useEffect(() => {
+    if (!initialCode) return;
+    const saved = window.sessionStorage.getItem(PASSWORD_KEY);
+    if (!saved) return;
+    void submit("query", initialCode, saved);
+    // 仅首屏触发
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode]);
+
   const status = record?.redeemStatus ?? "";
   const canConfirm =
     Boolean(record) && record!.isWin && record!.redeemStatus === "PENDING";
@@ -167,14 +382,13 @@ export default function RedeemConsole() {
                 setCode(event.target.value);
                 setRecord(null);
               }}
-              placeholder="例如 123456"
+              onBlur={onCodeBlur}
+              placeholder="扫码、粘贴链接或输入 6 位核销码"
               autoComplete="off"
               spellCheck={false}
-              inputMode="numeric"
-              maxLength={8}
             />
             <span style={{ fontSize: 12, color: "#8a6c5b" }}>
-              客户手机上的核销码为 4~8 位数字
+              支持扫客户二维码、粘贴核销链接，或手输 4~8 位数字码
             </span>
           </label>
           <label>
@@ -187,7 +401,7 @@ export default function RedeemConsole() {
               autoComplete="off"
             />
           </label>
-          <div className="admin-actions">
+          <div className="admin-actions" style={{ flexWrap: "wrap" }}>
             <button type="submit" disabled={Boolean(busy)}>
               {busy === "query" ? "查询中…" : "查询"}
             </button>
@@ -201,7 +415,35 @@ export default function RedeemConsole() {
                 {busy === "confirm" ? "核销中…" : "确认核销"}
               </button>
             )}
+            <button
+              type="button"
+              className="admin-btn secondary"
+              onClick={() => void startCameraScan()}
+              disabled={Boolean(busy)}
+            >
+              {scanning ? "关闭摄像头" : "扫码核销"}
+            </button>
+            {inWechat ? (
+              <button
+                type="button"
+                className="admin-btn secondary"
+                onClick={scanByWechat}
+                disabled={Boolean(busy) || !wxReady}
+                title={wxReady ? "调用微信扫一扫" : "微信 JS-SDK 未就绪"}
+              >
+                微信扫一扫
+              </button>
+            ) : null}
           </div>
+          {scanning ? (
+            <div
+              id={SCANNER_REGION_ID}
+              className="redeem-scanner"
+              style={{ marginTop: 12, overflow: "hidden", borderRadius: 12 }}
+            />
+          ) : (
+            <div id={SCANNER_REGION_ID} style={{ display: "none" }} />
+          )}
           {message && (
             <p className={message.error ? "error-text" : "redeem-hint"}>
               {message.text}
@@ -257,7 +499,7 @@ export default function RedeemConsole() {
           </div>
         ) : (
           <p className="redeem-hint">
-            输入核销码查询后，会在这里显示奖品、中奖人与核销状态。
+            扫码或输入核销码查询后，会在这里显示奖品、中奖人与核销状态。
           </p>
         )}
       </section>

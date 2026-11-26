@@ -6,15 +6,39 @@ import RedeemConsole from "@/components/admin/RedeemConsole";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
+import { buildRedeemAdminPath, parseRedeemCodeInput } from "@/lib/redeem-code";
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function maskPhone(phone: string | null | undefined) {
   if (!phone) return "-";
   return phone.replace(/^(\d{3})\d{4}(\d{4})$/, "$1****$2");
 }
 
-export default async function AdminRedeemPage() {
+function pick(
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+) {
+  const value = params[key];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export default async function AdminRedeemPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const rawCode = pick(params, "code");
+  const initialCode = parseRedeemCodeInput(rawCode) || "";
+  const loginNext = initialCode
+    ? buildRedeemAdminPath(initialCode)
+    : "/admin/redeem";
+
   const session = await getAdminSession();
-  if (!session) redirect("/admin/login");
+  if (!session) {
+    redirect(`/admin/login?next=${encodeURIComponent(loginNext)}`);
+  }
   if (!hasPermission(session.permissions, "redeem", session.isSuperAdmin)) {
     redirect("/admin");
   }
@@ -63,7 +87,7 @@ export default async function AdminRedeemPage() {
         </article>
       </div>
 
-      <RedeemConsole />
+      <RedeemConsole initialCode={initialCode} />
 
       <section className="admin-card" style={{ marginTop: 16 }}>
         <h3 style={{ marginTop: 0 }}>最近核销记录</h3>

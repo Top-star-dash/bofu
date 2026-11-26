@@ -9,6 +9,7 @@ import type {
 } from "./types";
 import WechatShare from "./WechatShare";
 import GiftDrawAnimation from "./GiftDrawAnimation";
+import RedeemQrCard from "./RedeemQrCard";
 import { useStayTracking } from "./useStayTracking";
 import { safeHttpUrl, safeMediaUrl } from "@/lib/urls";
 
@@ -1228,12 +1229,12 @@ export default function ActivityPage({
                         </button>
                       </div>
                     )}
-                    {/* <span>
-                      {new Date(lastDraw.createdAt).toLocaleString("zh-CN")}
-                    </span> */}
+                    {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
+                      <RedeemQrCard code={lastDraw.redeemCode} />
+                    )}
                     {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
                       <p className="redeem-tip">
-                        到访请出示核销码，现场核销后失效
+                        到访请出示二维码或核销码，现场核销后失效
                       </p>
                     )}
                     {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
@@ -1363,12 +1364,15 @@ export default function ActivityPage({
                               </button>
                             </div>
                           )}
+                          {item.isWin && item.redeemStatus === "PENDING" && (
+                            <RedeemQrCard code={item.redeemCode} />
+                          )}
                           <span>
                             {new Date(item.createdAt).toLocaleString("zh-CN")}
                           </span>
                           {item.isWin && item.redeemStatus === "PENDING" && (
                             <p className="redeem-tip">
-                              到访请出示核销码，现场核销后失效
+                              到访请出示二维码或核销码，现场核销后失效
                             </p>
                           )}
                           {item.isWin && item.redeemStatus === "PENDING" && (

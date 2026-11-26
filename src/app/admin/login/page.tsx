@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import PreviewableImage from "@/components/admin/PreviewableImage";
+import { safeAdminNext } from "@/lib/admin-next";
 
 const LOGIN_LOGOS = [
   { src: "/activity/logo-future.webp", alt: "未来社区" },
@@ -31,8 +32,11 @@ export default function AdminLoginPage() {
       setError(data.message || "登录失败");
       return;
     }
-    // 硬跳转：避免软导航沿用登录前预取的 /admin（无 cookie → 又被打回登录页）
-    window.location.assign("/admin");
+    // 硬跳转：避免软导航沿用登录前预取的 /admin；支持 ?next= 回跳核销台等
+    const next = safeAdminNext(
+      new URLSearchParams(window.location.search).get("next"),
+    );
+    window.location.assign(next);
   }
 
   return (
