@@ -2395,8 +2395,34 @@ button.redeem-qr-toggle {
 }
 
 .redeem-detail .redeem-qr.is-open {
-  padding: 10px;
+  width: 100%;
+  padding: 12px;
   background: white;
+}
+
+/* 核销码与二维码同处一张卡片，单行展示 */
+.redeem-detail .redeem-code {
+  width: 100%;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 7px 10px;
+}
+
+.redeem-detail .redeem-code small,
+.redeem-detail .redeem-code b,
+.redeem-detail .redeem-code button {
+  order: 0;
+}
+
+.redeem-detail .redeem-code b {
+  flex: 1 1 auto;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+}
+
+.redeem-detail .redeem-code button {
+  margin-left: auto;
 }
 
 .redeem-staff-link {

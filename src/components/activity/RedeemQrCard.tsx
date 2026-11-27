@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import { buildRedeemAdminUrl } from "@/lib/redeem-code";
 
-/** 待核销二维码面板；展开由外层「二维码」按钮控制 */
+/** 待核销二维码面板；展开由外层「去核销」按钮控制 */
 export default function RedeemQrCard({
   code,
   open,
+  children,
 }: {
   code: string;
   open: boolean;
+  children?: ReactNode;
 }) {
   const [dataUrl, setDataUrl] = useState("");
   const [failed, setFailed] = useState(false);
@@ -44,12 +46,10 @@ export default function RedeemQrCard({
       ) : !dataUrl ? (
         <p className="redeem-tip">核销二维码生成中…</p>
       ) : (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={dataUrl} alt="核销二维码" />
-          <small>到店出示此码，由工作人员扫码核销</small>
-        </>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={dataUrl} alt="核销二维码" />
       )}
+      {children}
     </div>
   );
 }

@@ -565,14 +565,15 @@ export default function ActivityPage({
         </div>
         {canRedeem && expanded ? (
           <div className="redeem-detail">
-            <RedeemQrCard code={item.redeemCode} open />
-            <div className="redeem-code">
-              <small>核销码</small>
-              <b>{item.redeemCode}</b>
-              <button type="button" onClick={() => copyRedeemCode(item.redeemCode)}>
-                复制
-              </button>
-            </div>
+            <RedeemQrCard code={item.redeemCode} open>
+              <div className="redeem-code">
+                <small>核销码</small>
+                <b>{item.redeemCode}</b>
+                <button type="button" onClick={() => copyRedeemCode(item.redeemCode)}>
+                  复制
+                </button>
+              </div>
+            </RedeemQrCard>
             <p className="redeem-tip">到访请出示二维码或核销码，现场核销后失效</p>
             {redeemTarget === item.redeemCode ? (
               <form
