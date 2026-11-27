@@ -567,14 +567,12 @@ export default function ActivityPage({
           <div className="redeem-detail">
             <RedeemQrCard code={item.redeemCode} open>
               <div className="redeem-code">
-                <small>核销码</small>
                 <b>{item.redeemCode}</b>
                 <button type="button" onClick={() => copyRedeemCode(item.redeemCode)}>
                   复制
                 </button>
               </div>
             </RedeemQrCard>
-            <p className="redeem-tip">到访请出示二维码或核销码，现场核销后失效</p>
             {redeemTarget === item.redeemCode ? (
               <form
                 className="redeem-inline"
@@ -1327,6 +1325,7 @@ export default function ActivityPage({
                   请于 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}{" "}
                   前到 {activity.address} 现场领取。
                 </p>
+                <p className="redeem-tip">到访请出示二维码或核销码，现场核销后失效</p>
                 <button
                   type="button"
                   className="submit-button"
@@ -1374,6 +1373,7 @@ export default function ActivityPage({
                   请于 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}{" "}
                   前到 {activity.address} 现场领取。
                 </p>
+                <p className="redeem-tip">到访请出示二维码或核销码，现场核销后失效</p>
               </>
             )}
 

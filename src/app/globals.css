@@ -2400,29 +2400,44 @@ button.redeem-qr-toggle {
   background: white;
 }
 
-/* 核销码与二维码同处一张卡片，单行展示 */
+/* 核销码与二维码同处一张卡片：仅数字居中，无底色，复制按钮靠右 */
 .redeem-detail .redeem-code {
+  position: relative;
   width: 100%;
   flex-wrap: nowrap;
+  justify-content: center;
   gap: 8px;
   margin-top: 2px;
-  padding: 7px 10px;
+  padding: 7px 0;
+  background: transparent;
 }
 
-.redeem-detail .redeem-code small,
 .redeem-detail .redeem-code b,
 .redeem-detail .redeem-code button {
   order: 0;
 }
 
 .redeem-detail .redeem-code b {
-  flex: 1 1 auto;
-  font-size: 16px;
-  letter-spacing: 0.06em;
+  flex: 0 1 auto;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-align: center;
 }
 
 .redeem-detail .redeem-code button {
-  margin-left: auto;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 0;
+}
+
+/* 移出奖品列表后的领取提示 */
+.redeem-tip {
+  margin: 6px 0 0;
+  color: #b83224;
+  font-size: 11px;
+  text-align: center;
 }
 
 .redeem-staff-link {
