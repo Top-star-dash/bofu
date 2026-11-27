@@ -370,8 +370,9 @@ button {
 .status-tip {
   display: block;
   margin-top: 8px;
-  color: #ffe7bc;
+  color: #f70606;
   font-style: normal;
+  font-size: 15px;
 }
 
 .draw-area {
