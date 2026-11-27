@@ -13,6 +13,7 @@ import {
   getCustomerSession,
 } from "@/lib/customer-session";
 import { prisma } from "@/lib/db";
+import { normalizeMediaUrl } from "@/lib/urls";
 
 const schema = z.object({
   shareCode: z.string().trim().max(64).optional(),
@@ -162,6 +163,7 @@ export async function POST(request: Request) {
             id: record.id,
             prizeName: record.prizeName,
             prizeLevel: record.prizeLevel,
+            imageUrl: normalizeMediaUrl(record.prize?.imageUrl) ?? null,
             isWin: record.isWin,
             redeemStatus: record.redeemStatus,
             createdAt: record.createdAt,

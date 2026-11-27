@@ -118,7 +118,13 @@ export async function ensureCustomer(params: {
     });
     return prisma.customer.findUniqueOrThrow({
       where: { id: existing.id },
-      include: { lead: true, drawRecords: { orderBy: { createdAt: "desc" } } },
+      include: {
+        lead: true,
+        drawRecords: {
+          orderBy: { createdAt: "desc" },
+          include: { prize: true },
+        },
+      },
     });
   }
 
@@ -135,6 +141,12 @@ export async function ensureCustomer(params: {
       avatarUrl: avatarUrl || undefined,
       drawChance: 0,
     },
-    include: { lead: true, drawRecords: { orderBy: { createdAt: "desc" } } },
+    include: {
+      lead: true,
+      drawRecords: {
+        orderBy: { createdAt: "desc" },
+        include: { prize: true },
+      },
+    },
   });
 }

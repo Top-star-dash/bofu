@@ -77,6 +77,7 @@ export type CustomerClient = {
     id: string;
     prizeName: string;
     prizeLevel: string;
+    imageUrl: string | null;
     isWin: boolean;
     redeemStatus: string;
     createdAt: string;
@@ -99,6 +100,7 @@ export type PrizeRecordClient = {
   id: string;
   prizeName: string;
   prizeLevel: string;
+  imageUrl: string | null;
   isWin: boolean;
   redeemStatus: string;
   createdAt: string;

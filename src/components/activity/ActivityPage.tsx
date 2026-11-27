@@ -362,6 +362,7 @@ export default function ActivityPage({
         id: string;
         prizeName: string;
         prizeLevel: string;
+        imageUrl?: string | null;
         isWin: boolean;
         redeemStatus: string;
         redeemCode: string;
@@ -391,6 +392,7 @@ export default function ActivityPage({
       id: result.id,
       prizeName: result.prizeName,
       prizeLevel: result.prizeLevel,
+      imageUrl: result.imageUrl ?? null,
       isWin: result.isWin,
       redeemStatus: result.redeemStatus,
       createdAt: new Date().toISOString(),
@@ -510,6 +512,120 @@ export default function ActivityPage({
     } finally {
       setRedeemBusy(false);
     }
+  }
+
+  /** 统一奖品卡片：图片 + 名称 + 去核销；展开后显示二维码与核销码 */
+  function renderPrizeItem(item: PrizeRecordClient, isResult = false) {
+    const canRedeem = item.isWin && item.redeemStatus === "PENDING";
+    const expanded = qrOpenCode === item.redeemCode;
+    return (
+      <li key={item.id} className={isResult ? "is-latest" : undefined}>
+        <div className="prize-line">
+          <div className="prize-brief">
+            {item.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className="prize-thumb"
+                src={item.imageUrl}
+                alt={item.prizeName}
+              />
+            ) : (
+              <span className="prize-thumb prize-thumb-fallback">
+                {item.prizeName.slice(0, 1)}
+              </span>
+            )}
+            <div className="prize-brief-text">
+              <strong>
+                {isResult ? `${item.prizeLevel} · ${item.prizeName}` : item.prizeName}
+              </strong>
+              {isResult ? (
+                <span className="prize-state">
+                  {item.isWin
+                    ? REDEEM_LABELS[item.redeemStatus] || item.redeemStatus
+                    : "未中奖"}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          {canRedeem ? (
+            <button
+              type="button"
+              className="prize-go"
+              aria-expanded={expanded}
+              onClick={() => {
+                setQrOpenCode(expanded ? null : item.redeemCode);
+                setRedeemTarget(null);
+                setRedeemPassword("");
+                setRedeemError("");
+              }}
+            >
+              {expanded ? "收起" : "去核销"}
+            </button>
+          ) : null}
+        </div>
+        {canRedeem && expanded ? (
+          <div className="redeem-detail">
+            <RedeemQrCard code={item.redeemCode} open />
+            <div className="redeem-code">
+              <small>核销码</small>
+              <b>{item.redeemCode}</b>
+              <button type="button" onClick={() => copyRedeemCode(item.redeemCode)}>
+                复制
+              </button>
+            </div>
+            <p className="redeem-tip">到访请出示二维码或核销码，现场核销后失效</p>
+            {redeemTarget === item.redeemCode ? (
+              <form
+                className="redeem-inline"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitRedeem(item.redeemCode);
+                }}
+              >
+                <input
+                  value={redeemPassword}
+                  onChange={(event) => setRedeemPassword(event.target.value)}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={12}
+                  placeholder="工作人员输入核销密码"
+                  aria-label="核销密码"
+                />
+                <button type="submit" disabled={redeemBusy}>
+                  {redeemBusy ? "核销中…" : "确认核销"}
+                </button>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => {
+                    setRedeemTarget(null);
+                    setRedeemError("");
+                  }}
+                >
+                  取消
+                </button>
+                {redeemError ? <em className="error-text">{redeemError}</em> : null}
+              </form>
+            ) : (
+              <button
+                type="button"
+                className="redeem-staff-link"
+                onClick={() => {
+                  setRedeemTarget(item.redeemCode);
+                  setRedeemPassword("");
+                  setRedeemError("");
+                }}
+              >
+                工作人员现场核销
+              </button>
+            )}
+          </div>
+        ) : null}
+        {!item.isWin && isResult ? (
+          <p className="redeem-tip">未中奖也可邀请好友助力，再得抽奖机会。</p>
+        ) : null}
+      </li>
+    );
   }
 
   if (loading) {
@@ -1202,122 +1318,9 @@ export default function ActivityPage({
 
             {modal === "drawResult" && lastDraw && (
               <>
-                <span>抽奖结果</span>
-                <h2 id="modal-title">{lastDraw.prizeName}</h2>
+                <h2 id="modal-title">抽奖结果</h2>
                 <ul className="prize-list">
-                  <li className={lastDraw.isWin ? "is-latest" : undefined}>
-                    <div className="prize-line">
-                      {/* <strong>
-                        {lastDraw.prizeLevel} · {lastDraw.prizeName}
-                      </strong> */}
-                      <div className="prize-line-meta">
-                        <em
-                          className={`redeem-badge redeem-${lastDraw.redeemStatus.toLowerCase()}`}
-                        >
-                          {lastDraw.isWin
-                            ? REDEEM_LABELS[lastDraw.redeemStatus] ||
-                              lastDraw.redeemStatus
-                            : "未中奖"}
-                        </em>
-                        {lastDraw.isWin &&
-                          lastDraw.redeemStatus === "PENDING" && (
-                            <button
-                              type="button"
-                              className="redeem-badge redeem-pending redeem-qr-toggle"
-                              aria-expanded={qrOpenCode === lastDraw.redeemCode}
-                              onClick={() =>
-                                setQrOpenCode((prev) =>
-                                  prev === lastDraw.redeemCode
-                                    ? null
-                                    : lastDraw.redeemCode,
-                                )
-                              }
-                            >
-                              二维码
-                            </button>
-                          )}
-                      </div>
-                    </div>
-                    {lastDraw.isWin && (
-                      <div className="redeem-code">
-                        {/* <small>核销码</small> */}
-                        <b>{lastDraw.redeemCode}</b>
-                        <button
-                          type="button"
-                          onClick={() => copyRedeemCode(lastDraw.redeemCode)}
-                        >
-                          复制
-                        </button>
-                      </div>
-                    )}
-                    {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
-                      <RedeemQrCard
-                        code={lastDraw.redeemCode}
-                        open={qrOpenCode === lastDraw.redeemCode}
-                      />
-                    )}
-                    {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
-                      <p className="redeem-tip">
-                        到访请出示二维码或核销码，现场核销后失效
-                      </p>
-                    )}
-                    {lastDraw.isWin && lastDraw.redeemStatus === "PENDING" && (
-                      redeemTarget === lastDraw.redeemCode ? (
-                        <form
-                          className="redeem-inline"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            void submitRedeem(lastDraw.redeemCode);
-                          }}
-                        >
-                          <input
-                            value={redeemPassword}
-                            onChange={(event) =>
-                              setRedeemPassword(event.target.value)
-                            }
-                            inputMode="numeric"
-                            autoComplete="off"
-                            maxLength={12}
-                            placeholder="工作人员输入核销密码"
-                            aria-label="核销密码"
-                          />
-                          <button type="submit" disabled={redeemBusy}>
-                            {redeemBusy ? "核销中…" : "确认核销"}
-                          </button>
-                          <button
-                            type="button"
-                            className="link-button"
-                            onClick={() => {
-                              setRedeemTarget(null);
-                              setRedeemError("");
-                            }}
-                          >
-                            取消
-                          </button>
-                          {redeemError ? (
-                            <em className="error-text">{redeemError}</em>
-                          ) : null}
-                        </form>
-                      ) : (
-                        <button
-                          type="button"
-                          className="redeem-start"
-                          onClick={() => {
-                            setRedeemTarget(lastDraw.redeemCode);
-                            setRedeemPassword("");
-                            setRedeemError("");
-                          }}
-                        >
-                          现场核销
-                        </button>
-                      )
-                    )}
-                    {!lastDraw.isWin && (
-                      <p className="redeem-tip">
-                        未中奖也可邀请好友助力，再得抽奖机会。
-                      </p>
-                    )}
-                  </li>
+                  {renderPrizeItem(lastDraw, true)}
                 </ul>
                 <p>
                   请于 {new Date(activity.redeemDeadline).toLocaleDateString("zh-CN")}{" "}
@@ -1361,123 +1364,7 @@ export default function ActivityPage({
                 </div>
                 {visiblePrizes.length ? (
                   <ul className="prize-list">
-                    {visiblePrizes.map((item) => {
-                      const status = item.isWin
-                        ? REDEEM_LABELS[item.redeemStatus] || item.redeemStatus
-                        : "未中奖";
-                      return (
-                        <li key={item.id}>
-                          <div className="prize-line">
-                            <strong>
-                              {item.prizeLevel} · {item.prizeName}
-                            </strong>
-                            <div className="prize-line-meta">
-                              {/* <em
-                                className={`redeem-badge redeem-${item.redeemStatus.toLowerCase()}`}
-                              >
-                                {status}
-                              </em> */}
-                              {item.isWin &&
-                                item.redeemStatus === "PENDING" && (
-                                  <button
-                                    type="button"
-                                    className="redeem-badge redeem-pending redeem-qr-toggle"
-                                    aria-expanded={
-                                      qrOpenCode === item.redeemCode
-                                    }
-                                    onClick={() =>
-                                      setQrOpenCode((prev) =>
-                                        prev === item.redeemCode
-                                          ? null
-                                          : item.redeemCode,
-                                      )
-                                    }
-                                  >
-                                    二维码
-                                  </button>
-                                )}
-                            </div>
-                          </div>
-                          {item.isWin && (
-                            <div className="redeem-code">
-                              <small>核销码</small>
-                              <b>{item.redeemCode}</b>
-                              <button
-                                type="button"
-                                onClick={() => copyRedeemCode(item.redeemCode)}
-                              >
-                                复制
-                              </button>
-                            </div>
-                          )}
-                          {item.isWin && item.redeemStatus === "PENDING" && (
-                            <RedeemQrCard
-                              code={item.redeemCode}
-                              open={qrOpenCode === item.redeemCode}
-                            />
-                          )}
-                          {/* <span>
-                            {new Date(item.createdAt).toLocaleString("zh-CN")}
-                          </span> */}
-                          {item.isWin && item.redeemStatus === "PENDING" && (
-                            <p className="redeem-tip">
-                              到访请出示二维码或核销码，现场核销后失效
-                            </p>
-                          )}
-                          {item.isWin && item.redeemStatus === "PENDING" && (
-                            redeemTarget === item.redeemCode ? (
-                              <form
-                                className="redeem-inline"
-                                onSubmit={(event) => {
-                                  event.preventDefault();
-                                  void submitRedeem(item.redeemCode);
-                                }}
-                              >
-                                <input
-                                  value={redeemPassword}
-                                  onChange={(event) =>
-                                    setRedeemPassword(event.target.value)
-                                  }
-                                  inputMode="numeric"
-                                  autoComplete="off"
-                                  maxLength={12}
-                                  placeholder="工作人员输入核销密码"
-                                  aria-label="核销密码"
-                                />
-                                <button type="submit" disabled={redeemBusy}>
-                                  {redeemBusy ? "核销中…" : "确认核销"}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="link-button"
-                                  onClick={() => {
-                                    setRedeemTarget(null);
-                                    setRedeemError("");
-                                  }}
-                                >
-                                  取消
-                                </button>
-                                {redeemError ? (
-                                  <em className="error-text">{redeemError}</em>
-                                ) : null}
-                              </form>
-                            ) : (
-                              <button
-                                type="button"
-                                className="redeem-start"
-                                onClick={() => {
-                                  setRedeemTarget(item.redeemCode);
-                                  setRedeemPassword("");
-                                  setRedeemError("");
-                                }}
-                              >
-                                现场核销
-                              </button>
-                            )
-                          )}
-                        </li>
-                      );
-                    })}
+                    {visiblePrizes.map((item) => renderPrizeItem(item))}
                   </ul>
                 ) : (
                   <p className="prize-empty">该状态下暂无奖品记录。</p>

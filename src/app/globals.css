@@ -1743,8 +1743,8 @@ button {
 }
 
 .prize-list li.is-latest {
-  margin: 0 -8px;
-  padding: 10px 8px;
+  margin: 0;
+  padding: 10px 2px;
   border-radius: 10px;
   background: #fff8e9;
 }
@@ -2307,4 +2307,103 @@ button.redeem-qr-toggle {
   background: white;
   font-size: 12px;
   font-weight: 700;
+}
+/* ===== 奖品卡片简化版：图片 + 名称 + 去核销 ===== */
+.prize-list li {
+  min-width: 0;
+}
+
+.prize-list li .prize-line {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.prize-brief {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.prize-thumb {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 8px;
+  border: 1px solid #f0d7b2;
+  background: #fff4e0;
+  object-fit: cover;
+}
+
+.prize-thumb-fallback {
+  display: grid;
+  place-items: center;
+  color: #b83224;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.prize-brief-text {
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+}
+
+.prize-brief-text strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prize-state {
+  display: block;
+  margin-top: 2px;
+  color: #8a6c5b;
+  font-size: 11px;
+}
+
+.prize-go {
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 62px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 999px;
+  color: white;
+  background: #b83224;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.redeem-detail {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fffaf3;
+}
+
+.redeem-detail .redeem-qr {
+  margin-top: 0;
+}
+
+.redeem-detail .redeem-qr.is-open {
+  padding: 10px;
+  background: white;
+}
+
+.redeem-staff-link {
+  justify-self: center;
+  border: 0;
+  color: #8a6c5b;
+  background: transparent;
+  font-size: 11px;
+  text-decoration: underline;
 }
