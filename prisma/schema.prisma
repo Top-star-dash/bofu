@@ -18,6 +18,7 @@ enum ActivityStatus {
   DRAFT
   NOT_STARTED
   RUNNING
+  MAINTENANCE
   ENDED
 }
 

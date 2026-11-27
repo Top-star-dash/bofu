@@ -38,7 +38,7 @@ function probabilityTotal(prizes: Array<{ probability: number; enabled: boolean 
 }
 
 const STOCK_LOCKED_MESSAGE =
-  "活动进行中不可修改库存/剩余库存，请先到「活动配置」将状态改为「草稿」或「已结束」后再改";
+  "活动进行中不可修改库存/剩余库存，请先到「活动配置」将状态改为「维护中」后再改";
 
 export async function PATCH(request: Request) {
   const guard = await guardApi("prizes");
@@ -93,7 +93,7 @@ export async function PATCH(request: Request) {
           }
         } else if (stockLocked) {
           throw new Error(
-            "活动进行中不可新增奖品（含库存），请先到「活动配置」将状态改为「草稿」或「已结束」后再操作",
+            "活动进行中不可新增奖品（含库存），请先到「活动配置」将状态改为「维护中」后再操作",
           );
         } else {
           await tx.prize.create({
@@ -135,7 +135,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json(
       {
         message:
-          "活动进行中不可删除奖品，请先到「活动配置」将状态改为「草稿」或「已结束」后再操作",
+          "活动进行中不可删除奖品，请先到「活动配置」将状态改为「维护中」后再操作",
       },
       { status: 409 },
     );

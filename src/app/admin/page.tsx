@@ -5,6 +5,7 @@ import Link from "next/link";
 import AdminShell, { firstAllowedHref } from "@/components/admin/AdminShell";
 import { canUse } from "@/lib/admin-guard";
 import { getCurrentActivity } from "@/lib/activity";
+import { activityStatusLabel } from "@/lib/activity-status";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getRangeDigest, parseRange, shanghaiDayStart } from "@/lib/stats";
@@ -251,7 +252,10 @@ export default async function AdminHomePage({
         {activity ? (
           <div className="flex flex-col gap-2 text-[13px] leading-5">
             <div dangerouslySetInnerHTML={{ __html: activity.title }} />
-            <div>状态：{activity.runtimeStatus}</div>
+            <div>
+              状态：{activityStatusLabel(activity.runtimeStatus)}（
+              {activity.runtimeStatus}）
+            </div>
             <div>
               时间：{activity.startAt.toLocaleString("zh-CN")} ~{" "}
               {activity.endAt.toLocaleString("zh-CN")}

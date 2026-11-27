@@ -11,6 +11,7 @@ import WechatShare from "./WechatShare";
 import GiftDrawAnimation from "./GiftDrawAnimation";
 import RedeemQrCard from "./RedeemQrCard";
 import { useStayTracking } from "./useStayTracking";
+import { activityStatusMessage } from "@/lib/activity-status";
 import { safeHttpUrl, safeMediaUrl } from "@/lib/urls";
 
 type Props = {
@@ -336,7 +337,7 @@ export default function ActivityPage({
   async function draw() {
     if (!activity || drawing) return;
     if (activity.status !== "RUNNING") {
-      showToast("活动未开始或已结束");
+      showToast(activityStatusMessage(activity.status));
       return;
     }
     if (!customer) {
@@ -746,7 +747,7 @@ export default function ActivityPage({
           {/* 活动状态 */}
           {activity.status !== "RUNNING" && (
             <em className="status-tip">
-              {activity.status === "NOT_STARTED" ? "活动未开始" : "活动已结束"}
+              {activityStatusMessage(activity.status)}
             </em>
           )}
         </div>
@@ -758,7 +759,7 @@ export default function ActivityPage({
             onClick={draw}
             aria-label="点击转盘抽奖"
             aria-busy={drawing}
-            disabled={drawing}
+            disabled={drawing || activity.status !== "RUNNING"}
           >
             <span className="wheel-stage">
               <span className="wheel-pointer" aria-hidden="true" />
@@ -778,9 +779,7 @@ export default function ActivityPage({
             {activity.status === "RUNNING" ? (
               <strong>当前剩余抽奖次数：{customer?.drawChance ?? 0} 次</strong>
             ) : (
-              <strong>
-                {activity.status === "NOT_STARTED" ? "活动未开始" : "活动已结束"}
-              </strong>
+              <strong>{activityStatusMessage(activity.status)}</strong>
             )}
             <button type="button" onClick={() => setModal("help")}>
               邀请好友助力，再得抽奖机会

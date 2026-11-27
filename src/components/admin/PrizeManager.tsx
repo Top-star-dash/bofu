@@ -71,7 +71,7 @@ export default function PrizeManager({ initial, activityStatus }: Props) {
   function add() {
     if (stockLocked) {
       setError(
-        "活动进行中不可新增奖品，请先到「活动配置」将状态改为「草稿」或「已结束」",
+        "活动进行中不可新增奖品，请先到「活动配置」将状态改为「维护中」",
       );
       return;
     }
@@ -115,7 +115,7 @@ export default function PrizeManager({ initial, activityStatus }: Props) {
       });
       if (touchedStock) {
         setError(
-          "活动进行中不可修改库存/剩余库存，请先到「活动配置」将状态改为「草稿」或「已结束」后再改",
+          "活动进行中不可修改库存/剩余库存，请先到「活动配置」将状态改为「维护中」后再改",
         );
         setBusy(false);
         return;
@@ -168,7 +168,7 @@ export default function PrizeManager({ initial, activityStatus }: Props) {
           <Link href="/admin/settings" className="font-bold underline">
             活动配置
           </Link>{" "}
-          将状态改为「草稿」或「已结束」，改完再改回「进行中」。名称、图片、概率等仍可保存。
+          将状态改为「维护中」（暂停抽奖），改完再改回「进行中」。名称、图片、概率等仍可保存。
         </p>
       ) : null}
 
@@ -325,7 +325,7 @@ export default function PrizeManager({ initial, activityStatus }: Props) {
       {message && <p className="ok-text">{message}</p>}
       <p className="redeem-hint">
         「兜底」奖品用于未中奖兜底，不扣减库存；奖品一旦产生中奖记录不能删除，请改为停用。
-        修改库存前请先暂停活动（草稿/已结束），避免抽奖并发覆盖剩余库存。
+        修改库存前请先将活动设为「维护中」，避免抽奖并发覆盖剩余库存。
       </p>
     </div>
   );

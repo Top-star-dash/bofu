@@ -7,12 +7,17 @@ export function resolveActivityStatus(
   endAt: Date,
   stored: ActivityStatus,
 ): ActivityStatus {
-  if (stored === "DRAFT" || stored === "ENDED") return stored;
+  // 草稿 / 维护中 / 已结束：强制按库内状态，不按时间自动切回进行中
+  if (stored === "DRAFT" || stored === "MAINTENANCE" || stored === "ENDED") {
+    return stored;
+  }
   const now = Date.now();
   if (now < startAt.getTime()) return "NOT_STARTED";
   if (now > endAt.getTime()) return "ENDED";
   return "RUNNING";
 }
+
+export { activityStatusLabel, activityStatusMessage } from "@/lib/activity-status";
 
 export async function getCurrentActivity() {
   const activity = await prisma.activity.findFirst({

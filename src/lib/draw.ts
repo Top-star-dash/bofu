@@ -1,3 +1,4 @@
+import { activityStatusMessage } from "@/lib/activity-status";
 import { prisma } from "@/lib/db";
 import { generateRedeemCode } from "@/lib/redeem-code";
 
@@ -25,6 +26,14 @@ export async function drawPrize(activityId: string, customerId: string) {
 
     const activity = await tx.activity.findUnique({ where: { id: activityId } });
     if (!activity) throw new Error("活动不存在");
+
+    if (
+      activity.status === "DRAFT" ||
+      activity.status === "MAINTENANCE" ||
+      activity.status === "ENDED"
+    ) {
+      throw new Error(activityStatusMessage(activity.status));
+    }
 
     const now = Date.now();
     if (now < activity.startAt.getTime() || now > activity.endAt.getTime()) {

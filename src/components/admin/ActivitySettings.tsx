@@ -62,6 +62,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 
 const STATUS_OPTIONS = [
   { value: "RUNNING", label: "进行中（按起止时间）" },
+  { value: "MAINTENANCE", label: "维护中（暂停抽奖，可改库存）" },
   { value: "DRAFT", label: "草稿（H5 不开放）" },
   { value: "NOT_STARTED", label: "未开始" },
   { value: "ENDED", label: "已结束" },

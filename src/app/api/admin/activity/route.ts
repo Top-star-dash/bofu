@@ -32,7 +32,9 @@ const dateField = z
 const schema = z.object({
   title: z.string().trim().min(1).max(2000).optional(),
   subtitle: z.string().trim().max(2000).optional().nullable(),
-  status: z.enum(["DRAFT", "NOT_STARTED", "RUNNING", "ENDED"]).optional(),
+  status: z
+    .enum(["DRAFT", "NOT_STARTED", "RUNNING", "MAINTENANCE", "ENDED"])
+    .optional(),
   startAt: dateField.optional(),
   endAt: dateField.optional(),
   redeemDeadline: dateField.optional(),

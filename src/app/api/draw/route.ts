@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentActivity } from "@/lib/activity";
+import { activityStatusMessage } from "@/lib/activity-status";
 import { getCustomerSession } from "@/lib/customer-session";
 import { drawPrize } from "@/lib/draw";
 import { prisma } from "@/lib/db";
@@ -20,7 +21,10 @@ export async function POST() {
   }
 
   if (activity.runtimeStatus !== "RUNNING") {
-    return NextResponse.json({ message: "活动未开始或已结束" }, { status: 400 });
+    return NextResponse.json(
+      { message: activityStatusMessage(activity.runtimeStatus) },
+      { status: 400 },
+    );
   }
 
   const customer = await prisma.customer.findUnique({
