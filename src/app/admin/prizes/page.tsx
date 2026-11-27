@@ -43,7 +43,10 @@ export default async function AdminPrizesPage() {
   return (
     <AdminShell session={session} current="/admin/prizes">
       <h2 style={{ marginTop: 0 }}>奖品管理</h2>
-      <PrizeManager initial={prizes} />
+      <PrizeManager
+        initial={prizes}
+        activityStatus={activity?.runtimeStatus ?? "DRAFT"}
+      />
     </AdminShell>
   );
 }

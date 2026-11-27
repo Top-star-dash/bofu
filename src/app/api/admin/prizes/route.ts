@@ -37,6 +37,9 @@ function probabilityTotal(prizes: Array<{ probability: number; enabled: boolean 
     .reduce((sum, prize) => sum + Number(prize.probability), 0);
 }
 
+const STOCK_LOCKED_MESSAGE =
+  "活动进行中不可修改库存/剩余库存，请先到「活动配置」将状态改为「草稿」或「已结束」后再改";
+
 export async function PATCH(request: Request) {
   const guard = await guardApi("prizes");
   if (guard.error) return guard.error;
@@ -62,34 +65,59 @@ export async function PATCH(request: Request) {
     );
   }
 
+  const stockLocked = activity.runtimeStatus === "RUNNING";
+
   try {
     await prisma.$transaction(async (tx) => {
       for (const prize of parsed.data.prizes) {
-        const { id, ...data } = prize;
+        const { id, stock, remainStock, ...rest } = prize;
         if (id) {
-          await tx.prize.update({ where: { id }, data });
+          if (stockLocked) {
+            const current = await tx.prize.findUnique({
+              where: { id },
+              select: { stock: true, remainStock: true, activityId: true },
+            });
+            if (!current || current.activityId !== activity.id) {
+              throw new Error("奖品不存在或不属于当前活动");
+            }
+            if (current.stock !== stock || current.remainStock !== remainStock) {
+              throw new Error(STOCK_LOCKED_MESSAGE);
+            }
+            // 进行中绝不写回库存字段，避免并发抽奖后被表单旧值覆盖
+            await tx.prize.update({ where: { id }, data: rest });
+          } else {
+            await tx.prize.update({
+              where: { id },
+              data: { ...rest, stock, remainStock },
+            });
+          }
+        } else if (stockLocked) {
+          throw new Error(
+            "活动进行中不可新增奖品（含库存），请先到「活动配置」将状态改为「草稿」或「已结束」后再操作",
+          );
         } else {
-          await tx.prize.create({ data: { ...data, activityId: activity.id } });
+          await tx.prize.create({
+            data: { ...rest, stock, remainStock, activityId: activity.id },
+          });
         }
       }
     });
   } catch (error) {
+    const raw = error instanceof Error ? error.message : "保存失败";
+    const locked = raw.includes("活动进行中");
     return NextResponse.json(
-      {
-        message:
-          error instanceof Error ? `保存失败：${error.message}` : "保存失败",
-      },
-      { status: 400 },
+      { message: locked ? raw : `保存失败：${raw}` },
+      { status: locked ? 409 : 400 },
     );
   }
 
   await writeOperationLog(
     guard.session.sub,
     "prize.save",
-    `${parsed.data.prizes.length} 项，概率合计 ${total}%`,
+    `${parsed.data.prizes.length} 项，概率合计 ${total}%${stockLocked ? "（进行中未改库存）" : ""}`,
   );
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, stockLocked });
 }
 
 export async function DELETE(request: Request) {
@@ -100,6 +128,17 @@ export async function DELETE(request: Request) {
   const id = typeof body?.id === "string" ? body.id : "";
   if (!id) {
     return NextResponse.json({ message: "缺少奖品 id" }, { status: 400 });
+  }
+
+  const activity = await getCurrentActivity();
+  if (activity?.runtimeStatus === "RUNNING") {
+    return NextResponse.json(
+      {
+        message:
+          "活动进行中不可删除奖品，请先到「活动配置」将状态改为「草稿」或「已结束」后再操作",
+      },
+      { status: 409 },
+    );
   }
 
   const used = await prisma.drawRecord.count({ where: { prizeId: id } });

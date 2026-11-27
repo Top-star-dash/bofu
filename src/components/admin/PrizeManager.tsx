@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageField from "./ImageField";
 
@@ -35,12 +36,27 @@ function newRow(index: number): PrizeRow {
   };
 }
 
-export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
+type Props = {
+  initial: PrizeRow[];
+  /** 运行时活动状态：RUNNING 时锁定库存字段 */
+  activityStatus: string;
+};
+
+export default function PrizeManager({ initial, activityStatus }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<PrizeRow[]>(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  const stockLocked = activityStatus === "RUNNING";
+  const initialStockByKey = useMemo(() => {
+    const map = new Map<string, { stock: number; remainStock: number }>();
+    for (const row of initial) {
+      map.set(row.key, { stock: row.stock, remainStock: row.remainStock });
+    }
+    return map;
+  }, [initial]);
 
   const total = rows
     .filter((row) => row.enabled)
@@ -53,6 +69,12 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
   }
 
   function add() {
+    if (stockLocked) {
+      setError(
+        "活动进行中不可新增奖品，请先到「活动配置」将状态改为「草稿」或「已结束」",
+      );
+      return;
+    }
     setRows((prev) => [...prev, newRow(prev.length)]);
   }
 
@@ -81,6 +103,25 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
     setBusy(true);
     setError("");
     setMessage("");
+
+    if (stockLocked) {
+      const touchedStock = rows.some((row) => {
+        const baseline = initialStockByKey.get(row.key);
+        if (!baseline) return true; // 新增行
+        return (
+          Number(row.stock) !== baseline.stock ||
+          Number(row.remainStock) !== baseline.remainStock
+        );
+      });
+      if (touchedStock) {
+        setError(
+          "活动进行中不可修改库存/剩余库存，请先到「活动配置」将状态改为「草稿」或「已结束」后再改",
+        );
+        setBusy(false);
+        return;
+      }
+    }
+
     try {
       const response = await fetch("/api/admin/prizes", {
         method: "PATCH",
@@ -106,7 +147,11 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
         setError(data.message || "保存失败");
         return;
       }
-      setMessage("奖品已保存");
+      setMessage(
+        stockLocked
+          ? "奖品已保存（活动进行中，库存未改动）"
+          : "奖品已保存",
+      );
       router.refresh();
     } catch {
       setError("网络异常，请稍后重试");
@@ -117,12 +162,27 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
 
   return (
     <div className="admin-card">
+      {stockLocked ? (
+        <p className="error-text" style={{ marginTop: 0 }}>
+          活动进行中：库存与剩余库存已锁定，避免与抽奖并发导致数据不一致。改库存前请先到{" "}
+          <Link href="/admin/settings" className="font-bold underline">
+            活动配置
+          </Link>{" "}
+          将状态改为「草稿」或「已结束」，改完再改回「进行中」。名称、图片、概率等仍可保存。
+        </p>
+      ) : null}
+
       <div className="admin-toolbar" style={{ marginBottom: 8 }}>
         <strong>
           概率合计：{total.toFixed(2)}%
           {Math.abs(total - 100) > 0.01 ? "（需等于 100% 才能保存）" : ""}
         </strong>
-        <button type="button" className="admin-btn secondary" onClick={add}>
+        <button
+          type="button"
+          className="admin-btn secondary"
+          onClick={add}
+          disabled={stockLocked}
+        >
           新增奖品
         </button>
         <button type="button" className="admin-btn" onClick={save} disabled={busy}>
@@ -178,6 +238,8 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
                     type="number"
                     min={0}
                     value={row.stock}
+                    disabled={stockLocked}
+                    title={stockLocked ? "活动进行中不可改库存" : undefined}
                     onChange={(event) =>
                       update(row.key, { stock: Number(event.target.value) || 0 })
                     }
@@ -189,6 +251,8 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
                     type="number"
                     min={0}
                     value={row.remainStock}
+                    disabled={stockLocked}
+                    title={stockLocked ? "活动进行中不可改剩余库存" : undefined}
                     onChange={(event) =>
                       update(row.key, { remainStock: Number(event.target.value) || 0 })
                     }
@@ -241,6 +305,7 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
                     type="button"
                     className="admin-btn secondary"
                     onClick={() => remove(row)}
+                    disabled={stockLocked && Boolean(row.id)}
                   >
                     删除
                   </button>
@@ -260,6 +325,7 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
       {message && <p className="ok-text">{message}</p>}
       <p className="redeem-hint">
         「兜底」奖品用于未中奖兜底，不扣减库存；奖品一旦产生中奖记录不能删除，请改为停用。
+        修改库存前请先暂停活动（草稿/已结束），避免抽奖并发覆盖剩余库存。
       </p>
     </div>
   );
