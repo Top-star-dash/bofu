@@ -3,7 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { NextResponse } from "next/server";
-import { guardApi } from "@/lib/admin-guard";
+import { getAdminSession } from "@/lib/auth";
+import { hasPermission, type PermissionCode } from "@/lib/permissions";
 import { safeMediaUrl } from "@/lib/urls";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -17,10 +18,26 @@ const EXT_BY_TYPE: Record<string, string> = {
   "image/gif": "gif",
 };
 
+/** 活动配置 / 奖品 / 顾问 / 客户素材都会走同一上传口 */
+const UPLOAD_PERMISSIONS: PermissionCode[] = [
+  "assets",
+  "prizes",
+  "activity",
+  "consultants",
+];
+
 /** D.4 素材上传：写入 public/uploads/年月，返回可直接引用的站内地址 */
 export async function POST(request: Request) {
-  const guard = await guardApi("assets");
-  if (guard.error) return guard.error;
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ message: "请先登录后台" }, { status: 401 });
+  }
+  const canUpload = UPLOAD_PERMISSIONS.some((code) =>
+    hasPermission(session.permissions, code, session.isSuperAdmin),
+  );
+  if (!canUpload) {
+    return NextResponse.json({ message: "没有该模块的操作权限" }, { status: 403 });
+  }
 
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");

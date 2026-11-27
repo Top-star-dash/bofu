@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import PreviewableImage from "./PreviewableImage";
+import ImageField from "./ImageField";
 
 export type PrizeRow = {
   key: string;
@@ -164,24 +164,13 @@ export default function PrizeManager({ initial }: { initial: PrizeRow[] }) {
                   />
                 </td>
                 <td>
-                  <div className="flex min-w-[160px] items-center gap-2">
-                    {row.imageUrl ? (
-                      <PreviewableImage
-                        src={row.imageUrl}
-                        alt={row.name || "奖品图"}
-                        title={row.name || "奖品图"}
-                        className="h-12 w-12 rounded object-cover"
-                      />
-                    ) : null}
-                    <input
-                      className="admin-inline-input"
-                      value={row.imageUrl}
-                      placeholder="/activity/prize-1.webp"
-                      onChange={(event) =>
-                        update(row.key, { imageUrl: event.target.value })
-                      }
-                    />
-                  </div>
+                  <ImageField
+                    compact
+                    label={row.name || "奖品图"}
+                    value={row.imageUrl}
+                    hint="/activity/prize-1.webp 或点上传"
+                    onChange={(value) => update(row.key, { imageUrl: value })}
+                  />
                 </td>
                 <td>
                   <input
